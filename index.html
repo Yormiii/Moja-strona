@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="WebForge tworzy szybkie, nowoczesne i responsywne strony internetowe dla lokalnych firm. Bezpłatna wycena i jasne warunki współpracy.">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0b1020">
+  <link rel="canonical" href="https://webforge.com.pl/">
+  <meta property="og:title" content="WebForge — strony internetowe dla firm">
+  <meta property="og:description" content="Nowoczesne strony internetowe, które dobrze wyglądają i pomagają zdobywać klientów.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://webforge.com.pl/">
+  <title>WebForge — nowoczesne strony internetowe dla firm</title>
+  <style>
+    :root {
+      --bg: #070b16;
+      --bg-soft: #0d1427;
+      --card: rgba(255,255,255,.055);
+      --card-border: rgba(255,255,255,.11);
+      --text: #f7f9ff;
+      --muted: #aeb8d0;
+      --accent: #7c5cff;
+      --accent-2: #33d2ff;
+      --success: #72e6a6;
+      --shadow: 0 20px 60px rgba(0,0,0,.32);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(124,92,255,.22), transparent 35%),
+        radial-gradient(circle at 90% 20%, rgba(51,210,255,.15), transparent 30%),
+        var(--bg);
+      line-height: 1.6;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input, textarea { font: inherit; }
+    img { max-width: 100%; display: block; }
+
+    .container { width: min(1120px, calc(100% - 36px)); margin: 0 auto; }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(18px);
+      background: rgba(7,11,22,.75);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+
+    .nav {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 850; letter-spacing: -.03em; font-size: 1.25rem; }
+    .brand-mark {
+      width: 38px; height: 38px; border-radius: 12px;
+      display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 10px 30px rgba(124,92,255,.35);
+      font-weight: 900;
+    }
+
+    nav ul { display: flex; gap: 24px; list-style: none; margin: 0; padding: 0; }
+    nav a { color: var(--muted); font-weight: 650; font-size: .95rem; }
+    nav a:hover { color: var(--text); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+      min-height: 48px; padding: 0 20px; border-radius: 14px;
+      font-weight: 800; border: 1px solid transparent; cursor: pointer;
+      transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #5a7cff 55%, var(--accent-2));
+      color: white;
+      box-shadow: 0 14px 35px rgba(90,124,255,.28);
+    }
+    .btn-secondary { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.14); }
+
+    .hero { padding: 92px 0 68px; }
+    .hero-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 54px; align-items: center; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: #dcd7ff; background: rgba(124,92,255,.13);
+      border: 1px solid rgba(124,92,255,.3); border-radius: 999px;
+      padding: 8px 12px; font-size: .85rem; font-weight: 750;
+    }
+    h1 { font-size: clamp(2.6rem, 6vw, 5.2rem); line-height: .98; letter-spacing: -.06em; margin: 22px 0; }
+    .gradient-text { background: linear-gradient(90deg, #fff, #b7c8ff 35%, #67d9ff); -webkit-background-clip: text; color: transparent; }
+    .hero p { max-width: 690px; color: var(--muted); font-size: 1.12rem; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+    .hero-proof { display: flex; flex-wrap: wrap; gap: 20px; color: var(--muted); margin-top: 28px; font-size: .92rem; }
+    .hero-proof span::before { content: "✓"; color: var(--success); margin-right: 7px; font-weight: 900; }
+
+    .preview {
+      position: relative; padding: 18px; border-radius: 28px;
+      background: linear-gradient(145deg, rgba(255,255,255,.09), rgba(255,255,255,.025));
+      border: 1px solid var(--card-border); box-shadow: var(--shadow);
+      transform: rotate(1deg);
+    }
+    .preview::before {
+      content: ""; position: absolute; inset: -50px auto auto -60px; width: 160px; height: 160px;
+      background: rgba(124,92,255,.3); filter: blur(70px); border-radius: 50%; z-index: -1;
+    }
+    .browser { border-radius: 18px; overflow: hidden; background: #fff; color: #111827; }
+    .browser-top { height: 44px; background: #eef1f7; display: flex; align-items: center; gap: 7px; padding: 0 14px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #c8cfdd; }
+    .mock {
+      min-height: 370px; padding: 42px 34px;
+      background: linear-gradient(145deg, #10182e, #182553);
+      color: white;
+    }
+    .mock small { color: #9ab9ff; font-weight: 800; text-transform: uppercase; letter-spacing: .15em; }
+    .mock h3 { font-size: 2.1rem; line-height: 1.05; margin: 16px 0; }
+    .mock p { color: #c7d0e8; font-size: .95rem; }
+    .mock-card-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 30px; }
+    .mock-card { min-height: 86px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 14px; }
+
+    section { padding: 78px 0; }
+    .section-heading { max-width: 720px; margin-bottom: 34px; }
+    .section-heading h2 { font-size: clamp(2rem, 4vw, 3.3rem); line-height: 1.05; letter-spacing: -.045em; margin: 0 0 14px; }
+    .section-heading p { color: var(--muted); margin: 0; }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .card {
+      background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius);
+      padding: 26px; box-shadow: 0 18px 50px rgba(0,0,0,.12);
+    }
+    .icon {
+      width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center;
+      background: linear-gradient(135deg, rgba(124,92,255,.26), rgba(51,210,255,.17));
+      font-size: 1.25rem; margin-bottom: 20px;
+    }
+    .card h3 { margin: 0 0 8px; font-size: 1.15rem; }
+    .card p { color: var(--muted); margin: 0; font-size: .95rem; }
+
+    .portfolio-card { overflow: hidden; padding: 0; }
+    .portfolio-image {
+      min-height: 210px; display: flex; align-items: flex-end; padding: 22px;
+      background: linear-gradient(135deg, #2a3150, #11172a);
+      position: relative;
+    }
+    .portfolio-image::after { content: ""; position: absolute; inset: 15% 10% auto auto; width: 100px; height: 100px; border-radius: 25px; background: rgba(124,92,255,.3); filter: blur(25px); }
+    .portfolio-image.alt { background: linear-gradient(135deg, #10291f, #143b38); }
+    .portfolio-image.third { background: linear-gradient(135deg, #3a1d18, #1c1728); }
+    .mini-window { width: 80%; height: 125px; background: rgba(255,255,255,.94); border-radius: 14px; box-shadow: 0 15px 40px rgba(0,0,0,.25); padding: 12px; z-index: 1; }
+    .mini-line { height: 8px; border-radius: 999px; background: #d6dce8; margin-bottom: 9px; }
+    .mini-line.dark { width: 55%; background: #7d88a2; }
+    .mini-boxes { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; margin-top: 15px; }
+    .mini-boxes span { height: 48px; border-radius: 8px; background: #edf0f6; }
+    .portfolio-body { padding: 22px; }
+    .tag { display: inline-block; font-size: .76rem; color: #d7e2ff; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; padding: 5px 9px; margin-bottom: 12px; }
+
+    .process { counter-reset: step; }
+    .process .card { position: relative; }
+    .process .card::before {
+      counter-increment: step; content: "0" counter(step);
+      position: absolute; right: 22px; top: 15px; font-size: 2.1rem; font-weight: 900; color: rgba(255,255,255,.08);
+    }
+
+    .pricing { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; align-items: stretch; }
+    .price-card { position: relative; }
+    .price-card.featured { border-color: rgba(124,92,255,.6); transform: translateY(-8px); background: linear-gradient(180deg, rgba(124,92,255,.13), rgba(255,255,255,.045)); }
+    .popular { position: absolute; top: 15px; right: 15px; background: rgba(124,92,255,.22); color: #ddd7ff; border: 1px solid rgba(124,92,255,.35); padding: 5px 9px; border-radius: 999px; font-size: .74rem; font-weight: 800; }
+    .price { font-size: 2.2rem; font-weight: 900; letter-spacing: -.04em; margin: 18px 0 4px; }
+    .price-note { color: var(--muted); font-size: .88rem; }
+    .features { list-style: none; padding: 0; margin: 20px 0 26px; }
+    .features li { color: var(--muted); margin: 10px 0; }
+    .features li::before { content: "✓"; color: var(--success); margin-right: 9px; font-weight: 900; }
+
+    .contact-wrap { display: grid; grid-template-columns: .85fr 1.15fr; gap: 24px; }
+    .contact-info { display: flex; flex-direction: column; justify-content: space-between; }
+    .contact-list { display: grid; gap: 14px; margin-top: 26px; }
+    .contact-list div { color: var(--muted); }
+    form { display: grid; gap: 14px; }
+    .field { display: grid; gap: 7px; }
+    label { font-size: .88rem; color: #dce3f5; font-weight: 700; }
+    input, textarea, select {
+      width: 100%; border: 1px solid rgba(255,255,255,.13); border-radius: 13px;
+      background: rgba(5,10,22,.75); color: white; padding: 14px 15px; outline: none;
+    }
+    input:focus, textarea:focus, select:focus { border-color: rgba(124,92,255,.75); box-shadow: 0 0 0 4px rgba(124,92,255,.12); }
+    textarea { min-height: 130px; resize: vertical; }
+    .form-note { color: var(--muted); font-size: .82rem; margin: 0; }
+
+    footer { padding: 32px 0 42px; border-top: 1px solid rgba(255,255,255,.08); color: var(--muted); }
+    .footer-row { display: flex; justify-content: space-between; gap: 20px; align-items: center; flex-wrap: wrap; }
+
+    .mobile-toggle { display: none; border: 0; background: transparent; color: white; font-size: 1.6rem; }
+
+    @media (max-width: 900px) {
+      .hero-grid, .contact-wrap { grid-template-columns: 1fr; }
+      .preview { max-width: 680px; }
+      .grid-3, .pricing { grid-template-columns: 1fr 1fr; }
+      nav ul { display: none; }
+      .mobile-toggle { display: block; }
+    }
+
+    @media (max-width: 620px) {
+      .container { width: min(100% - 24px, 1120px); }
+      .hero { padding-top: 64px; }
+      h1 { font-size: 3.15rem; }
+      .grid-3, .pricing { grid-template-columns: 1fr; }
+      .price-card.featured { transform: none; }
+      .nav .btn { display: none; }
+      .mock { min-height: 310px; padding: 30px 22px; }
+      .mock h3 { font-size: 1.7rem; }
+      .hero-actions .btn { width: 100%; }
+      section { padding: 60px 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="#start" aria-label="WebForge — strona główna">
+        <span class="brand-mark">W</span>
+        <span>WebForge</span>
+      </a>
+      <nav aria-label="Główna nawigacja">
+        <ul>
+          <li><a href="#oferta">Oferta</a></li>
+          <li><a href="#portfolio">Portfolio</a></li>
+          <li><a href="#proces">Jak działamy</a></li>
+          <li><a href="#cennik">Cennik</a></li>
+          <li><a href="#kontakt">Kontakt</a></li>
+        </ul>
+      </nav>
+      <a class="btn btn-primary" href="#kontakt">Bezpłatna wycena</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="start">
+      <div class="container hero-grid">
+        <div>
+          <span class="eyebrow">⚡ Strony dla lokalnych firm</span>
+          <h1><span class="gradient-text">Tworzymy strony,</span><br>które pracują na Twój biznes.</h1>
+          <p>Projektujemy szybkie, nowoczesne i responsywne strony internetowe. Jasna wycena, sprawny kontakt i gotowa publikacja pod Twoją domeną.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#kontakt">Poproś o wycenę</a>
+            <a class="btn btn-secondary" href="#portfolio">Zobacz realizacje</a>
+          </div>
+          <div class="hero-proof">
+            <span>Wersja mobilna</span>
+            <span>Podstawowe SEO</span>
+            <span>Pomoc we wdrożeniu</span>
+          </div>
+        </div>
+        <div class="preview" aria-label="Podgląd przykładowej strony">
+          <div class="browser">
+            <div class="browser-top"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <div class="mock">
+              <small>Nowoczesna firma usługowa</small>
+              <h3>Profesjonalna strona, która buduje zaufanie.</h3>
+              <p>Przejrzysta oferta, szybki kontakt i wygląd dopasowany do telefonu.</p>
+              <div class="mock-card-row"><div class="mock-card"></div><div class="mock-card"></div><div class="mock-card"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="oferta">
+      <div class="container">
+        <div class="section-heading">
+          <h2>Wszystko, czego potrzebuje dobra strona firmowa.</h2>
+          <p>Skupiamy się na przejrzystości, szybkości i prostym kontakcie z klientem.</p>
+        </div>
+        <div class="grid-3">
+          <article class="card"><div class="icon">🖥️</div><h3>Strony wizytówki</h3><p>Nowoczesna, jednostronicowa witryna z ofertą, kontaktem i wezwaniem do działania.</p></article>
+          <article class="card"><div class="icon">📱</div><h3>Pełna responsywność</h3><p>Strona wygląda dobrze na telefonie, tablecie i komputerze.</p></article>
+          <article class="card"><div class="icon">🔎</div><h3>Podstawowe SEO</h3><p>Poprawne tytuły, opisy, struktura i przygotowanie do indeksowania w Google.</p></article>
+          <article class="card"><div class="icon">⚙️</div><h3>Formularze i funkcje</h3><p>Formularz wyceny, przyciski kontaktowe, mapa, FAQ i inne potrzebne elementy.</p></article>
+          <article class="card"><div class="icon">🚀</div><h3>Publikacja strony</h3><p>Pomagamy uruchomić stronę i podłączyć ją do domeny.</p></article>
+          <article class="card"><div class="icon">🛠️</div><h3>Opieka i poprawki</h3><p>Możliwość aktualizacji treści, zdjęć i dalszego rozwoju strony.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="portfolio">
+      <div class="container">
+        <div class="section-heading">
+          <h2>Przykładowe realizacje.</h2>
+          <p>Poniższe projekty pokazują kierunki, w jakich możemy zbudować stronę dla Twojej branży.</p>
+        </div>
+        <div class="grid-3">
+          <article class="card portfolio-card">
+            <div class="portfolio-image"><div class="mini-window"><div class="mini-line dark"></div><div class="mini-line"></div><div class="mini-line"></div><div class="mini-boxes"><span></span><span></span><span></span></div></div></div>
+            <div class="portfolio-body"><span class="tag">Warsztat samochodowy</span><h3>AutoPro Serwis</h3><p>Oferta usług, szybki telefon, mapa dojazdu i formularz rezerwacji.</p></div>
+          </article>
+          <article class="card portfolio-card">
+            <div class="portfolio-image alt"><div class="mini-window"><div class="mini-line dark"></div><div class="mini-line"></div><div class="mini-line"></div><div class="mini-boxes"><span></span><span></span><span></span></div></div></div>
+            <div class="portfolio-body"><span class="tag">Hydraulik</span><h3>HydroFix 24</h3><p>Strona nastawiona na szybki kontakt i lokalne zapytania klientów.</p></div>
+          </article>
+          <article class="card portfolio-card">
+            <div class="portfolio-image third"><div class="mini-window"><div class="mini-line dark"></div><div class="mini-line"></div><div class="mini-line"></div><div class="mini-boxes"><span></span><span></span><span></span></div></div></div>
+            <div class="portfolio-body"><span class="tag">Auto detailing</span><h3>GlossLab</h3><p>Elegancki projekt z galerią efektów, pakietami i formularzem wyceny.</p></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="proces">
+      <div class="container process">
+        <div class="section-heading">
+          <h2>Prosty proces od pomysłu do publikacji.</h2>
+          <p>Bez technicznego chaosu i bez niejasnych etapów.</p>
+        </div>
+        <div class="grid-3">
+          <article class="card"><h3>Rozmowa i wycena</h3><p>Zbieramy informacje o firmie, ofercie, stylu i najważniejszym celu strony.</p></article>
+          <article class="card"><h3>Projekt i treści</h3><p>Tworzymy układ, wygląd oraz treści. Otrzymujesz wersję do sprawdzenia.</p></article>
+          <article class="card"><h3>Poprawki i publikacja</h3><p>Wprowadzamy ustalone poprawki, testujemy i uruchamiamy stronę pod domeną.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="cennik">
+      <div class="container">
+        <div class="section-heading">
+          <h2>Przejrzyste pakiety na start.</h2>
+          <p>Ostateczna cena zależy od zakresu, materiałów i dodatkowych funkcji.</p>
+        </div>
+        <div class="pricing">
+          <article class="card price-card">
+            <h3>Start</h3><div class="price">od 499 zł</div><div class="price-note">prosta strona wizytówka</div>
+            <ul class="features"><li>1 strona</li><li>Wersja mobilna</li><li>Kontakt i oferta</li><li>Podstawowe SEO</li></ul>
+            <a class="btn btn-secondary" href="#kontakt">Zapytaj o pakiet</a>
+          </article>
+          <article class="card price-card featured">
+            <span class="popular">Najczęściej wybierany</span>
+            <h3>Firma</h3><div class="price">od 899 zł</div><div class="price-note">pełniejsza strona firmowa</div>
+            <ul class="features"><li>Do 5 sekcji lub podstron</li><li>Formularz wyceny</li><li>Galeria lub portfolio</li><li>Pomoc z domeną</li></ul>
+            <a class="btn btn-primary" href="#kontakt">Poproś o wycenę</a>
+          </article>
+          <article class="card price-card">
+            <h3>Indywidualny</h3><div class="price">wycena</div><div class="price-note">dla bardziej rozbudowanych projektów</div>
+            <ul class="features"><li>Dodatkowe funkcje</li><li>Więcej podstron</li><li>Niestandardowy projekt</li><li>Dalszy rozwój</li></ul>
+            <a class="btn btn-secondary" href="#kontakt">Opisz projekt</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="kontakt">
+      <div class="container contact-wrap">
+        <div class="card contact-info">
+          <div>
+            <div class="section-heading" style="margin-bottom:0">
+              <h2>Porozmawiajmy o Twojej stronie.</h2>
+              <p>Opisz krótko firmę i zakres strony. Odpowiemy z propozycją oraz wstępną wyceną.</p>
+            </div>
+            <div class="contact-list">
+              <div>📧 kontakt@webforge.com.pl</div>
+              <div>🌐 webforge.com.pl</div>
+              <div>⏱️ Odpowiedź zwykle w ciągu 24 godzin</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <form id="quoteForm">
+            <div class="field"><label for="name">Imię lub nazwa firmy</label><input id="name" name="name" required placeholder="Np. Auto Serwis Kowalski"></div>
+            <div class="field"><label for="email">Adres e-mail</label><input id="email" name="email" type="email" required placeholder="twoj@email.pl"></div>
+            <div class="field"><label for="type">Rodzaj strony</label><select id="type" name="type"><option>Strona wizytówka</option><option>Strona firmowa</option><option>Landing page</option><option>Inny projekt</option></select></div>
+            <div class="field"><label for="message">Czego potrzebujesz?</label><textarea id="message" name="message" required placeholder="Napisz krótko, czym zajmuje się firma i jakie elementy powinna mieć strona."></textarea></div>
+            <button class="btn btn-primary" type="submit">Wyślij zapytanie</button>
+            <p class="form-note">Formularz otworzy wiadomość e-mail w aplikacji pocztowej. Po uruchomieniu firmowej skrzynki będzie działać pod adresem kontakt@webforge.com.pl.</p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-row">
+      <div class="brand"><span class="brand-mark">W</span><span>WebForge</span></div>
+      <div>© <span id="year"></span> WebForge. Wszystkie prawa zastrzeżone.</div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    document.getElementById('quoteForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const type = document.getElementById('type').value;
+      const message = document.getElementById('message').value.trim();
+
+      const subject = encodeURIComponent('Zapytanie o stronę — ' + name);
+      const body = encodeURIComponent(
+        'Imię / firma: ' + name + '\n' +
+        'E-mail: ' + email + '\n' +
+        'Rodzaj strony: ' + type + '\n\n' +
+        'Opis projektu:\n' + message
+      );
+
+      window.location.href = 'mailto:kontakt@webforge.com.pl?subject=' + subject + '&body=' + body;
+    });
+  </script>
+</body>
+</html>
