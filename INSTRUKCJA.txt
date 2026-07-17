@@ -1,9 +1,0 @@
-WEBFORGE V2 — WGRANIE NA GITHUB
-
-1. Rozpakuj ZIP.
-2. Wgraj wszystkie pliki z rozpakowanego folderu do głównego katalogu repozytorium.
-3. Pliki muszą być obok siebie — bez dodatkowego folderu.
-4. Kliknij Commit changes.
-5. Poczekaj 1–3 minuty i odśwież webforge.com.pl.
-
-Logo i favicon są już w głównym katalogu, więc ścieżki będą działały na GitHub Pages.
