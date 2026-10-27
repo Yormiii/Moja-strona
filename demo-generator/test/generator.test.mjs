@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, mkdtemp, rm, symlink, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, mkdtemp, rm, symlink, mkdir, writeFile, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -153,15 +153,18 @@ test('dołączony wynik przykładowy jest aktualny i odtwarzalny', async () => {
   assert.equal(await readFile(join(root, 'generated', sample.slug, 'index.html'), 'utf8'), renderCompany(sample).html);
 });
 
-test('CLI generuje nową firmę także z innego katalogu i odrzuca kolizję', async t => {
+test('CLI generuje z innego katalogu, pomija identyczny wynik i chroni zmieniony', async t => {
   const temp = await temporary(t);
+  const cliRoot = join(temp, 'generator'); await mkdir(cliRoot);
+  for (const name of ['generate.mjs', 'data', 'templates', 'package.json']) await cp(join(root, name), join(cliRoot, name), { recursive: true });
   const input = copy(); input.slug = `test-cli-${process.pid}`;
-  const destination = join(root, 'generated', input.slug);
-  t.after(() => rm(destination, { recursive: true, force: true }));
+  const destination = join(cliRoot, 'generated', input.slug);
   const json = join(temp, 'firma.json'); await writeFile(json, JSON.stringify(input));
-  const cli = (...args) => spawnSync(process.execPath, [join(root, 'generate.mjs'), json, ...args], { cwd: temp, encoding: 'utf8' });
+  const cli = (...args) => spawnSync(process.execPath, [join(cliRoot, 'generate.mjs'), json, ...args], { cwd: temp, encoding: 'utf8' });
   const first = cli(); assert.equal(first.status, 0, first.stderr);
   assert.equal(await readFile(join(destination, 'index.html'), 'utf8'), renderCompany(input).html);
+  assert.equal(cli().status, 0);
+  input.opis = 'Nowa propozycja'; await writeFile(json, JSON.stringify(input));
   assert.equal(cli().status, 1);
   assert.equal(cli('--force').status, 0);
 });

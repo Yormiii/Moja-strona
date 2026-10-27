@@ -1,4 +1,4 @@
-import { readFile, mkdir, lstat, open, rename, unlink } from 'node:fs/promises';
+import { readFile, mkdir, lstat, open, rename, unlink, readdir } from 'node:fs/promises';
 import { resolve, dirname, join, relative, isAbsolute } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
@@ -7,6 +7,11 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 export const OUTPUT_ROOT = join(ROOT, 'generated');
 export const industries = JSON.parse(await readFile(join(ROOT, 'data/industries.json'), 'utf8'));
 const template = await readFile(join(ROOT, 'templates/demo.html'), 'utf8');
+const catalogTemplate = await readFile(join(ROOT, 'templates/catalog.html'), 'utf8');
+const variants = Object.fromEntries(await Promise.all(
+  ['uslugowy', 'salon', 'gastronomia', 'ekspercki'].map(async key => [key, await readFile(join(ROOT, `templates/variants/${key}.html`), 'utf8')])
+));
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const fail = message => { throw new Error(message); };
 const record = (value, field) => {
@@ -67,13 +72,14 @@ export function validateCompany(input) {
   const id = createHash('sha256').update(`${nazwa}\0${miasto}`).digest('hex').slice(0, 8);
   const base = `${nazwa}-${miasto}`.toLowerCase().replace(/ł/g, 'l').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60).replace(/-$/, '') || 'firma';
   const slug = input.slug ?? `${base}-${id}`;
-  if (typeof slug !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 100) fail('slug: 1–100 znaków a-z, 0-9 i pojedyncze łączniki');
+  if (typeof slug !== 'string' || !SLUG.test(slug) || slug.length > 100) fail('slug: 1–100 znaków a-z, 0-9 i pojedyncze łączniki');
   return { nazwa, branza, miasto, opis, uslugi, kolory, kontakt, slug };
 }
 
 export function renderCompany(input) {
   const company = validateCompany(input);
   const preset = industries[company.branza];
+  if (!Object.hasOwn(variants, preset.szablon)) fail('Nieznany szablon branżowy');
   const esc = escapeHtml;
   const services = company.uslugi.map((service, i) => `<article class="card"><span class="num">${String(i + 1).padStart(2, '0')}</span><h3>${esc(service.nazwa)}</h3>${service.opis ? `<p>${esc(service.opis)}</p>` : ''}</article>`).join('\n');
   const contact = company.kontakt;
@@ -87,10 +93,12 @@ export function renderCompany(input) {
     opisMeta: esc(company.opis.replace(/\s+/g, ' ').slice(0, 160)),
     branza: esc(preset.etykieta), naglowek: esc(`${company.nazwa} — ${company.miasto}`),
     cta: esc(preset.cta), akcent: company.kolory.akcent, tlo: company.kolory.tlo,
-    uslugi: services, kontakt: links.join('\n')
+    uslugi: services, kontakt: links.join('\n'), szablon: preset.szablon
   };
+  // The variant comes only from trusted configuration, never from a JSON path.
+  const selectedTemplate = template.replace('{{panelBranzy}}', () => variants[preset.szablon]);
   // One pass: user text resembling {{tokens}} is never evaluated again.
-  const html = template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+  const html = selectedTemplate.replace(/\{\{(\w+)\}\}/g, (_, key) => {
     if (!Object.hasOwn(values, key)) fail(`Nieznany znacznik szablonu: ${key}`);
     return values[key];
   });
@@ -108,6 +116,87 @@ async function safeDirectory(directory) {
     if (error.code !== 'ENOENT') throw error;
     await mkdir(directory);
   }
+}
+
+async function existingFile(path) {
+  try {
+    const info = await lstat(path);
+    if (info.isSymbolicLink() || !info.isFile()) fail(`Niebezpieczny plik: ${path}`);
+    return await readFile(path, 'utf8');
+  } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+}
+
+async function atomicWrite(path, content) {
+  const temp = join(dirname(path), `.webforge-${randomUUID()}.tmp`);
+  try {
+    const handle = await open(temp, 'wx');
+    try { await handle.writeFile(content, 'utf8'); } finally { await handle.close(); }
+    await rename(temp, path);
+  } finally { await unlink(temp).catch(error => { if (error.code !== 'ENOENT') throw error; }); }
+}
+
+function decodeTitle(value) {
+  // Decode only the entities emitted by this generator, then escape again for the catalog.
+  return value.replace(/&(amp|lt|gt|quot|#39);/g, (_, key) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" })[key]);
+}
+
+async function catalogEntries(root) {
+  const entries = [];
+  for (const item of await readdir(root, { withFileTypes: true })) {
+    if (item.isSymbolicLink()) fail(`Niedozwolony symlink w wynikach: ${item.name}`);
+    if (!item.isDirectory() || !SLUG.test(item.name) || item.name.length > 100) continue;
+    const html = await existingFile(join(root, item.name, 'index.html'));
+    if (html === null) continue;
+    const title = html.match(/<title>([^]*?)<\/title>/i)?.[1];
+    entries.push({ slug: item.name, label: title ? decodeTitle(title.replace(/\s*\| Demo WebForge\s*$/, '').trim()) : item.name });
+  }
+  return entries.sort((a, b) => a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0);
+}
+
+function renderCatalog(entries) {
+  const cards = entries.map(e => `<li><a href="./${e.slug}/index.html">${escapeHtml(e.label)}</a><span>Projekt demonstracyjny WebForge</span></li>`).join('\n');
+  return catalogTemplate.replace('{{demonstracje}}', () => cards || '<li>Brak demonstracji.</li>');
+}
+
+/** Incremental build. All input and collisions are checked before any demo is written. */
+export async function generateCompanies(input, { outputRoot = OUTPUT_ROOT, overwrite = false } = {}) {
+  const list = Array.isArray(input) ? input : [input];
+  if (!list.length || list.length > 1000) fail('Lista firm: wymagane 1–1000 pozycji');
+  const rendered = list.map(renderCompany);
+  const slugs = new Set();
+  for (const { company } of rendered) {
+    if (slugs.has(company.slug)) fail(`Powtórzony slug w paczce: ${company.slug}`);
+    slugs.add(company.slug);
+  }
+  const root = resolve(outputRoot);
+  await safeDirectory(root);
+  const lock = join(root, '.generator.lock');
+  let handle;
+  try { handle = await open(lock, 'wx'); }
+  catch (error) { if (error.code === 'EEXIST') fail('Generator już działa lub pozostał plik .generator.lock. Sprawdź proces przed usunięciem blokady.'); throw error; }
+  try {
+    const catalogPath = join(root, 'index.html');
+    await existingFile(catalogPath); // Reject a catalog symlink before changing any page.
+    await catalogEntries(root); // Check old pages/symlinks before writing the batch.
+    const plan = [];
+    for (const result of rendered) {
+      const folder = join(root, result.company.slug);
+      try {
+        const info = await lstat(folder);
+        if (info.isSymbolicLink() || !info.isDirectory()) fail(`Niebezpieczny katalog: ${folder}`);
+      } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      const path = join(folder, 'index.html');
+      const previous = await existingFile(path);
+      if (previous !== null && previous !== result.html && !overwrite) fail(`Demo ${result.company.slug} już istnieje i różni się treścią. Użyj --force.`);
+      plan.push({ ...result, path, status: previous === result.html ? 'bez zmian' : previous === null ? 'utworzono' : 'odświeżono' });
+    }
+    for (const [i, result] of plan.entries()) {
+      if (result.status !== 'bez zmian') await generateCompany(list[i], { outputRoot: root, overwrite });
+    }
+    const entries = await catalogEntries(root); // Includes v0.1 pages; no metadata migration needed.
+    await atomicWrite(catalogPath, renderCatalog(entries));
+    return { pages: plan, catalogPath, total: entries.length };
+  } finally { await handle.close(); await unlink(lock); }
 }
 
 export async function generateCompany(input, { outputRoot = OUTPUT_ROOT, overwrite = false } = {}) {
@@ -138,15 +227,16 @@ export async function generateCompany(input, { outputRoot = OUTPUT_ROOT, overwri
 
 async function main(args) {
   if (args.length === 1 && ['--help', '-h'].includes(args[0])) {
-    console.log('Użycie: node demo-generator/generate.mjs <firma.json> [--force]\nWyjście: demo-generator/generated/<slug>/index.html');
+    console.log('Użycie: node demo-generator/generate.mjs <firma-lub-lista.json> [--force]\nWyjście: demo-generator/generated/<slug>/index.html\nKatalog: demo-generator/generated/index.html');
     return;
   }
   if (args.length < 1 || args.length > 2 || args[0].startsWith('-') || (args.length === 2 && args[1] !== '--force')) {
-    fail('Użycie: node demo-generator/generate.mjs <firma.json> [--force]');
+    fail('Użycie: node demo-generator/generate.mjs <firma-lub-lista.json> [--force]');
   }
   const input = JSON.parse(await readFile(resolve(args[0]), 'utf8'));
-  const result = await generateCompany(input, { overwrite: args[1] === '--force' });
-  console.log(`Wygenerowano lokalnie: ${result.path}`);
+  const result = await generateCompanies(input, { overwrite: args[1] === '--force' });
+  for (const page of result.pages) console.log(`${page.status}: ${page.path}`);
+  console.log(`Katalog (${result.total} demonstracji): ${result.catalogPath}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

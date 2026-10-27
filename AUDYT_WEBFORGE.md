@@ -507,3 +507,63 @@ Do szczegółowego raportu wszystkich przypadków można również uruchomić `n
 **Problemy:** wcześniejsza blokada 403 zapisu została rozwiązana przez aktualizację uprawnień. Ograniczenie podglądu wizualnego z poprzedniego zadania pozostaje otwarte.
 
 **Następne kroki:** użytkownik może przeglądać i pobrać kod z gałęzi; następnie sprawdzić lokalnie wygląd demonstracji w przeglądarce i zlecić kolejny etap. PR, scalanie, wdrożenie i zmiany produkcyjne wymagają osobnego polecenia.
+
+### 2026-10-27 — Zadanie 2: wiele firm, automatyczne warianty i katalog demonstracji
+
+**Zakres i ważna informacja właściciela:** pracować wyłącznie na `feature/demo-generator`, bez zmian głównej witryny i gałęzi `main`, bez płatnych usług. Właściciel poinformował, że Cloudflare Pages automatycznie publikuje tę gałąź. Zapis zmian jest zatem publikacją; wszystkie nowe dane i wyniki muszą być fikcyjne i pozbawione poufnych informacji. Jest to nowsza informacja niż historyczne wpisy o braku wdrożenia w poprzednich zadaniach.
+
+**Odczyt i stan początkowy:**
+
+- Przeczytano aktualny audyt z GitHub, kod, dane branżowe i szablon generatora oraz drzewo gałęzi `feature/demo-generator`, commit bazowy `712760ecebd76befe90ed35daf79df19aad60926`.
+- Sprawdzono zgodność lokalnych plików z blobami GitHub. `main` przed publikacją nadal wskazywał `8f07e41bdfad0d491b4d617c8a23a25a9465bb72`.
+
+**Wykonane działania:**
+
+- Generator v0.2 przyjmuje JSON pojedynczej firmy (zgodność wsteczna) albo tablicę 1–1000 firm. Dla każdej tworzy osobny `generated/<slug>/index.html`.
+- Dodano automatyczny wybór jednego z czterech wariantów na podstawie ośmiu branż. Mechanik, elektryk i hydraulik używają układu usługowego; barber i beauty — salonowego; restauracja — gastronomicznego; kancelaria i trener — eksperckiego. Warianty różnią się panelem branżowym i układem/typografią; wspólna baza nadal pochodzi z istniejących demonstracji.
+- Kolory, etykiety i CTA są wybierane z konfiguracji branży. Pole `kolory` pozostaje opcjonalnym nadpisaniem. Wybór wariantu nie przyjmuje ścieżki od użytkownika.
+- Dodano `templates/catalog.html` i katalog `generated/index.html`, z bezpiecznymi względnymi linkami do wszystkich istniejących demonstracji. Tytuły są kodowane jako tekst.
+- Katalog jest odbudowywany na podstawie istniejących podkatalogów i plików `index.html`; rozpoznaje także wcześniejsze demo v0.1 bez manifestu. Nie gromadzi dodatkowych danych kontaktowych.
+- Dodawanie nowych firm nie usuwa poprzednich wyników. Pominięte firmy zachowują pliki i linki w katalogu. Identyczne wyniki są pomijane, a odświeżenie zmienionej strony wymaga `--force`. Flaga obejmuje tylko firmy z bieżącego wejścia.
+- Cała paczka, unikalność slugów, kolizje, stare wyniki i docelowy katalog są sprawdzane przed zapisem stron. Błędna firma albo późniejsza kolizja nie powoduje częściowego zapisania wcześniejszych firm. Blokada `.generator.lock` chroni przed równoległymi procesami; katalog jest zapisywany przez plik tymczasowy i atomową zmianę nazwy.
+- Zachowano walidację danych, zabezpieczenia przed XSS, niebezpiecznymi URL, ścieżkami i symlinkami. Katalog oraz nowe strony mają oznaczenia demonstracyjne i `noindex, nofollow`.
+- Dodano `examples/lista-firm.json` z czterema wyłącznie fikcyjnymi firmami. Zachowano przykład Serwis Orbita TEST oraz dodano Salon Próbka TEST, Bistro Piksel TEST i Kancelaria Model TEST. Kontakty to domeny `.invalid`, a numer poprzedniego przykładu jest zerowy. Nie dodano prawdziwych danych potencjalnych klientów ani poufnych informacji.
+- Wygenerowano cztery demonstracje i katalog. Poprzednie demo zachowano pod tym samym adresem, odświeżając je do nowego wariantu w kontrolowanym przebiegu z `--force`.
+- Zaktualizowano instrukcję i dodano skrypt `npm run generate:batch`. Kolejne firmy dopisuje się do JSON, bez edytowania kodu.
+- Dodano testy paczek oraz odizolowano testy CLI, aby ich strony testowe nie zmieniały katalogu przeznaczonego do publikacji.
+
+**Uruchamianie:**
+
+```sh
+node demo-generator/generate.mjs demo-generator/examples/lista-firm.json
+# Jawne odświeżenie zmienionych stron:
+node demo-generator/generate.mjs demo-generator/examples/lista-firm.json --force
+npm --prefix demo-generator test
+```
+
+Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zawierać wyłącznie nowe firmy; poprzednich demonstracji nie trzeba ponownie wpisywać. W CI należy zachować wersjonowane `generated/`, ponieważ pusty katalog roboczy nie zawiera historii poprzedniego wdrożenia. Nie zmieniano konfiguracji budowania w Cloudflare.
+
+**Wyniki testów i kontroli:**
+
+- **26/26 przypadków przeszło, 0 błędów**: 13 dotychczasowych (zaktualizowanych do nowych zasad identycznych wyników) i 13 nowych testów paczek.
+- Potwierdzono osiem branż i cztery automatyczne warianty, domyślne kolory, generowanie listy, katalog wszystkich wyników, zachowanie poprzednich stron bajt po bajcie przy dopisywaniu nowych, starsze demo bez manifestu, idempotencję, zmianę tylko wskazanych firm z `--force`, walidację całej paczki i kolizje bez częściowego zapisu.
+- Sprawdzono noindex, oznaczenia demonstracji, XSS w danych i starszych tytułach, poprawność linków katalogu, symlinki pliku katalogowego/starszej strony/ścieżki nadrzędnej, blokadę równoległego procesu oraz obsługę listy przez CLI bez edycji kodu.
+- `npm --prefix demo-generator test`, osobne przebiegi obu plików testowych i `node --check demo-generator/generate.mjs` zakończyły się powodzeniem. Z powodu sposobu raportowania w tym środowisku tryb `--test` pokazuje 2 zbiorcze pliki; bezpośrednie uruchomienia potwierdziły łącznie 26 przypadków.
+- Ponowny przebieg na dołączonej liście zgłosił cztery wyniki „bez zmian”; katalog obejmuje cztery demonstracje.
+- Kontrola HTML pięciu plików (cztery strony i katalog) potwierdziła noindex, brak formularzy i skryptów oraz istnienie wszystkich czterech docelowych plików wskazanych w katalogu.
+- Sprawdzono SHA wszystkich 16 plików produkcyjnych: identyczne z bazą GitHub. Zmiany ograniczono do `demo-generator/` i audytu.
+- Nie deklarowano nowych testów wizualnych w przeglądarce; wcześniejsza blokada środowiska pozostaje opisana w dzienniku.
+
+**Problemy i poprawki w trakcie prac:**
+
+- W pierwszym przebiegu testów dwie asercje CLI odpowiadały starym zasadom kolizji; poprawiono je: identyczna strona jest teraz pomijana, zmieniona nadal wymaga `--force`.
+- Nowy test próbował oceniać stdout procesu potomnego, przechwytywany przez środowisko testowe; zastąpiono to sprawdzeniem faktycznej zawartości wygenerowanego katalogu i linków.
+- Nieoczekiwany błąd dysku w trakcie zapisu może pozostawić ukończoną część paczki. Po usunięciu przyczyny należy ponowić wejście; identyczne strony są bezpiecznie pomijane. Walidacja i zwykłe kolizje są wykrywane przed zapisem.
+- Po awarii procesu blokada może pozostać; usuwać ją ręcznie dopiero po sprawdzeniu, że generator już nie działa.
+
+**Publikacja i następne kroki:**
+
+- Po przejściu testów przygotowano zapis zmian na tej samej gałęzi GitHub. Wynik odczytu po publikacji zostanie odnotowany osobno.
+- Nie zmieniano `main`, głównej strony, formularzy, domeny, DNS ani konfiguracji Cloudflare; nie użyto płatnych usług i nie tworzono PR.
+- Publikacja gałęzi może uruchomić istniejącą integrację Cloudflare Pages zgodnie z informacją użytkownika. Udostępniane przykłady zawierają wyłącznie dane fikcyjne; rzeczywistego statusu wdrożenia nie należy utożsamiać z samym commitem GitHub.
+- Następnie sprawdzić zawartość gałęzi i katalog w istniejącym podglądzie Cloudflare, a w kolejnym zadaniu ewentualnie dodać zdjęcia lub panel. Statusy aktywności i automatyczne usuwanie demonstracji nie są częścią tej wersji.
