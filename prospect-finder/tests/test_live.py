@@ -198,8 +198,10 @@ class LiveTests(unittest.TestCase):
         try:
             report=discover_run(store,limit=3,workdir=self.path/'private',client=c)
             self.assertEqual(report['real_companies_found'],3);self.assertEqual(report['stored_unique_records'],3);self.assertEqual(len(f.load_json(report['json_export'])['records']),3)
+            self.assertEqual(report['new_records'],3);self.assertEqual(report['duplicate_records'],0);self.assertEqual(report['with_website'],3);self.assertEqual(report['potential_modernizations'],0)
             self.assertTrue(all(r['status']=='znaleziony' for r in store.search()))
             before=c.requests;again=discover_run(store,limit=3,workdir=self.path/'private',client=c);self.assertEqual(again['stored_unique_records'],3);self.assertEqual(c.requests,before)
+            self.assertEqual(again['new_records'],0);self.assertEqual(again['duplicate_records'],3)
             self.clock.now+=86401;c.wire=lambda *a:(_ for _ in ()).throw(OSError('TEST blocked'))
             blocked=discover_run(store,limit=3,workdir=self.path/'private',client=c);self.assertEqual(blocked['outcome'],'blocked_or_failed');self.assertEqual(blocked['real_companies_found'],0)
         finally:store.close()

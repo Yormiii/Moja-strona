@@ -1,0 +1,121 @@
+{
+  "name": "WebForge Prospect Finder (manual)",
+  "run-name": "Prospect Finder — ręczny przebieg",
+  "on": {
+    "workflow_dispatch": {
+      "inputs": {
+        "region": {
+          "description": "Region z config/osm.json",
+          "type": "string",
+          "required": true,
+          "default": "poznan"
+        },
+        "industry": {
+          "description": "Id branży z config/industries.json lub all",
+          "type": "string",
+          "required": true,
+          "default": "all"
+        },
+        "limit": {
+          "description": "Limit firm: 1–30",
+          "type": "number",
+          "required": true,
+          "default": 25
+        },
+        "category": {
+          "description": "Kategoria eksportu",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "wszystkie",
+            "modernizacja"
+          ],
+          "default": "wszystkie"
+        },
+        "storage": {
+          "description": "temporary = tylko szyfrowany artefakt; private-repository = trwały stan",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "temporary",
+            "private-repository"
+          ],
+          "default": "temporary"
+        },
+        "state_repository": {
+          "description": "owner/repo prywatnego magazynu (tylko private-repository)",
+          "type": "string",
+          "required": false,
+          "default": ""
+        }
+      }
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "concurrency": {
+    "group": "webforge-prospect-state",
+    "cancel-in-progress": false
+  },
+  "jobs": {
+    "discover": {
+      "if": "${{ github.event_name == 'workflow_dispatch' && ((github.repository == 'Yormiii/Moja-strona' && github.ref == 'refs/heads/feature/demo-generator') || github.event.repository.private == true) }}",
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 30,
+      "steps": [
+        {
+          "name": "Checkout public source branch",
+          "uses": "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "with": {
+            "repository": "Yormiii/Moja-strona",
+            "ref": "feature/demo-generator",
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Python 3.12",
+          "uses": "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "name": "Run offline tests",
+          "run": "python -m unittest discover -s prospect-finder/tests -v"
+        },
+        {
+          "name": "Discover and encrypt private results",
+          "env": {
+            "PROSPECT_DATA_KEY": "${{ secrets.PROSPECT_DATA_KEY }}",
+            "PROSPECT_STATE_TOKEN": "${{ secrets.PROSPECT_STATE_TOKEN }}",
+            "PF_REGION": "${{ inputs.region }}",
+            "PF_INDUSTRY": "${{ inputs.industry }}",
+            "PF_LIMIT": "${{ inputs.limit }}",
+            "PF_CATEGORY": "${{ inputs.category }}",
+            "PF_STORAGE": "${{ inputs.storage }}",
+            "PF_STATE_REPOSITORY": "${{ inputs.state_repository }}"
+          },
+          "run": "python prospect-finder/cloud_runner.py run --region \"$PF_REGION\" --industry \"$PF_INDUSTRY\" --limit \"$PF_LIMIT\" --category \"$PF_CATEGORY\" --storage \"$PF_STORAGE\" --state-repository \"$PF_STATE_REPOSITORY\" --workdir \"$RUNNER_TEMP/webforge-prospects\" --output \"$RUNNER_TEMP/webforge-output\""
+        },
+        {
+          "name": "Temporary encrypted result artifact",
+          "if": "${{ always() }}",
+          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "with": {
+            "name": "webforge-prospects-${{ github.run_id }}",
+            "path": "${{ runner.temp }}/webforge-output/results.tar.gpg",
+            "if-no-files-found": "ignore",
+            "retention-days": 1,
+            "compression-level": 0
+          }
+        },
+        {
+          "name": "Summary if setup or tests failed",
+          "if": "${{ always() }}",
+          "run": "python3 - <<'PY_SUMMARY'\nimport os\nfrom pathlib import Path\nif not (Path(os.environ['RUNNER_TEMP']) / 'webforge-output/summary.md').exists():\n    message = '# WebForge Prospect Finder v0.3\\n\\nPrzebieg nie dotarł do kompletnego raportu. Liczba znalezionych, nowych, zduplikowanych, z WWW i modernizacji: **nieustalona**. Najwyższe wyniki: brak danych. Błąd: workflow_incomplete (setup/testy/uruchomienie). Nie traktuj tego jako znalezienia 0 firm. Sprawdź log kroków; harmonogram pozostaje wyłączony.\\n'\n    with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf8') as stream:\n        stream.write(message)\nPY_SUMMARY"
+        }
+      ]
+    }
+  }
+}

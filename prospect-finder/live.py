@@ -238,15 +238,22 @@ def discover_run(store, *, region='poznan', limit=25, workdir=None, industry=Non
     os.chmod(folder,0o700)
     owned=client is None;client=client or HttpClient(folder/'network-cache.sqlite3')
     run_id=dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid4().hex[:8]
-    report={'version':2,'run_id':run_id,'source':'osm-overpass','region':region,'requested_limit':limit,'category':category,'outcome':'completed','real_companies_found':0,'stored_unique_records':0,'exported_records':0,'attribution':ATTRIBUTION,'license_url':COPYRIGHT,'limitations':['Dane OSM mogą być niepełne/nieaktualne. Klasyfikacja branży wymaga weryfikacji.','Brak WWW w OSM nie potwierdza braku strony. Edycja OSM i działające WWW nie potwierdzają aktywności firmy.']}
+    report={'version':3,'run_id':run_id,'source':'osm-overpass','region':region,'requested_limit':limit,'category':category,'outcome':'completed','real_companies_found':0,'stored_unique_records':0,'new_records':0,'duplicate_records':0,'with_website':0,'potential_modernizations':0,'top_scores':[],'exported_records':0,'attribution':ATTRIBUTION,'license_url':COPYRIGHT,'limitations':['Dane OSM mogą być niepełne/nieaktualne. Klasyfikacja branży wymaga weryfikacji.','Brak WWW w OSM nie potwierdza braku strony. Edycja OSM i działające WWW nie potwierdzają aktywności firmy.']}
     try:
         source=OverpassSource(client,region);records=source.search(limit=limit,industry=industry)
         report['source_diagnostics']=source.diagnostics;report['real_companies_found']=len(records)
         auditor=SiteAuditor(client)
         records=[auditor.audit(record) for record in records]
+        before=store.db.execute('SELECT COUNT(*) FROM prospects').fetchone()[0]
         ids=list(dict.fromkeys(store.ingest(records))) if records else []
+        after=store.db.execute('SELECT COUNT(*) FROM prospects').fetchone()[0]
+        report['new_records']=after-before;report['duplicate_records']=len(records)-report['new_records']
         report['stored_unique_records']=len(ids)
-        rows=[store.get(i) for i in ids];rows=[r for r in rows if matches(r,category=category)]
+        rows=[store.get(i) for i in ids]
+        report['with_website']=sum(bool(r['website']) for r in rows)
+        report['potential_modernizations']=sum(matches(r,category='modernizacja') for r in rows)
+        report['top_scores']=[{'id':r['id'],'score':r['assessment']['score'],'coverage_percent':r['assessment']['coverage_percent']} for r in sorted(rows,key=lambda r:(-r['assessment']['score'],r['id']))[:5]]
+        rows=[r for r in rows if matches(r,category=category)]
         report['exported_records']=len(rows);report['outcomes']={k:sum(r.get('site_check',{}).get('outcome')==k for r in rows) for k in sorted({r.get('site_check',{}).get('outcome','unknown') for r in rows})}
         report['json_export']=str(export_records(rows,folder/f'{run_id}.json'))
         report['csv_export']=str(export_records(rows,folder/f'{run_id}.csv','csv'))

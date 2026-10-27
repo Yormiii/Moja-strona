@@ -1,9 +1,13 @@
-# WebForge Prospect Finder v0.2
+# WebForge Prospect Finder v0.3
 
 Osobny, lokalny moduł do wyszukiwania w zaimportowanych danych, oceny i ręcznej akceptacji firm. **Python 3.10+ i SQLite z biblioteki standardowej; bez instalacji pakietów i bez płatnych API.** Panel przeglądania eksportu działa w Safari na iPadzie.
 
 Wersja v0.2 dodaje adapter **OpenStreetMap/Overpass**, wyszukiwanie rzeczywistych firm i ostrożne sprawdzanie ich stron głównych. Dotychczasowe adaptery `test-json` i `public-json`, SQLite, punktacja i panel pozostają dostępne. Nie ma wysyłki, publikacji demo rzeczywistych firm, Telegrama ani płatnych API. Interfejs `SourceAdapter.search()` umożliwia dodawanie kolejnych źródeł; pobieranie i audyt są oddzielone od bazy i punktacji.
 
+
+## Uruchamianie w chmurze (v0.3)
+
+Dodano ręczny workflow GitHub Actions, szyfrowane wyniki i opcjonalny trwały snapshot w osobnym prywatnym repozytorium. Nie zmienia to wyszukiwania v0.2 ani nie włącza harmonogramu. Dokładna konfiguracja bez zmiany main WebForge: [README_ACTIONS.md](README_ACTIONS.md). Sam plik workflow na feature nie wystarcza do workflow_dispatch — GitHub wymaga go na domyślnej gałęzi repozytorium sterującego.
 
 ## Rzeczywiste firmy — Poznań i okolice
 

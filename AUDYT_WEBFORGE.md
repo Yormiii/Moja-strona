@@ -705,3 +705,49 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 - Nie deklarowano udanego wdrożenia Cloudflare ani przetestowania zewnętrznych stron w tym środowisku; potwierdzany jest zapis kodu w GitHub.
 
 **Następny krok:** uruchomić gotową komendę discovery w prywatnym środowisku z działającym DNS/HTTPS i ręcznie zweryfikować pozyskane rekordy przed akceptacją lub kontaktem. Cel 20–30 rzeczywistych firm pozostaje do wykonania w takim środowisku.
+
+### 2026-10-27 — Prospect Finder v0.3: ręczny GitHub Actions i prywatny stan
+
+**Zakres:** kontynuacja na `feature/demo-generator`, bez zmian `main` i produkcyjnej witryny, bez aktywnego harmonogramu, wysyłki, publikacji demo i płatnych usług.
+
+**Wykonane działania:**
+
+- Przygotowano `.github/workflows/prospect-finder.yml` z jedynym triggerem `workflow_dispatch`. Parametry: region, branża/all, limit 1–30 (domyślnie 25), kategoria, tryb magazynu i opcjonalne prywatne repozytorium stanu.
+- Workflow używa standardowego Ubuntu i Python 3.12, uruchamia istniejące testy oraz silnik wyszukiwania v0.2. Nie przebudowano źródeł, kontroli stron, punktacji, bazy ani generatora demo.
+- Źródło checkoutu jest stałe: `Yormiii/Moja-strona`, `feature/demo-generator`. Uprawnienia `contents: read`, brak utrwalania poświadczeń checkoutu, akcje przypięte do odczytanych SHA, concurrency bez anulowania aktywnego przebiegu. Dane formularza trafiają przez env i cytowane argumenty, nie przez interpolację kodu shell.
+- Plik workflow jest JSON-em będącym poprawnym podzbiorem YAML. Dodano identyczny szablon `prospect-finder/workflow/prospect-finder.yml` do uruchomienia z prywatnego repozytorium sterującego i test zgodności obu kopii.
+- `cloud_runner.py` waliduje parametry i klucz, uruchamia dotychczasowy discovery, tworzy spójne backupy SQLite oraz szyfruje wyniki GPG AES-256 z ochroną integralności OpenPGP. Klucz przekazywany jest przez pipe, bez argumentu z wartością i bez pliku hasła. Repozytorium nie zawiera rzeczywistego klucza ani tokenu.
+- Workdir i output są poza checkoutem, w RUNNER_TEMP. Jedyny upload to `results.tar.gpg`; nie ma jawnych CSV/JSON/SQLite w artefaktach ani cache Actions. Artefakt ma retencję 1 dzień i jest wyłącznie rozwiązaniem tymczasowym.
+- Publiczny Summary zawiera liczbę znalezionych, nowych, duplikatów/już znanych, podanych WWW, potencjalnych modernizacji, najwyższe wartości punktacji bez nazw/ID, statystyki WWW, kody błędów i ograniczenia. Filtr przepuszcza tylko kontrolowane liczbowe pola i dozwolone kody. Surowe błędy, rekordy i źródła pozostają w szyfrowanej paczce.
+- Dodano raport awaryjny przy nieukończeniu setup/testów/uruchomienia: pokazuje „nieustalone”, zamiast udawać znalezienie 0 firm.
+- W istniejącym raporcie discovery dodano liczniki nowych i zduplikowanych rekordów, WWW, modernizacji i top scores. Pierwszy przebieg i drugi z tą samą SQLite są rozróżniane testami; logika wyszukiwania i oceny nie została przebudowana.
+- Dodano opcjonalny trwały backend: szyfrowany snapshot bazy i cache/liczników w osobnym prywatnym repozytorium GitHub. Repozytorium musi być zainicjowane i prywatne; źródłowe Moja-strona jest odrzucane. API nie podąża za przekierowaniami z tokenem. Przed zapisem ponownie sprawdzana jest prywatność i stosowany SHA lease, bez wymuszania nadpisania.
+- Odtwarzanie odrzuca nieznane pliki, traversal, duplikaty i niepoprawne bazy; limit stanu 20 MiB zaszyfrowanego i 150 MiB rozwiniętego. Zły klucz/odczyt nie powoduje cichego resetu bazy. W trybie temporary nie ma automatycznego odtwarzania poprzedniego stanu — jest to jawnie opisane.
+- `config/cloud.json` zawiera wyłączony przykład przyszłego cron. W workflow nie ma aktywnego schedule/push/PR.
+- Dodano `README_ACTIONS.md` z dokładnymi krokami konfiguracji z panelu GitHub, sekretów, magazynu, pobierania i odszyfrowania, kosztów i ograniczeń.
+
+**Ograniczenie GitHub i wymagane działanie użytkownika:**
+
+- Sprawdzono [dokumentację ręcznego uruchamiania](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow): plik workflow_dispatch musi istnieć na domyślnej gałęzi, aby uruchomić go ręcznie. Sam zapis na feature nie rejestruje działającego przycisku, a parametr ref nie obchodzi tego wymogu.
+- Nie zmieniono main Moja-strona. Przygotowano bezpieczne obejście organizacyjne: użytkownik tworzy prywatne `webforge-prospect-runner`, umieszcza wyłącznie szablon workflow w jego domyślnej gałęzi i dodaje sekret PROSPECT_DATA_KEY. Workflow pobierze kod z feature źródłowego projektu. Nie jest to zmiana domyślnej gałęzi źródła ani przebudowa produkcji.
+- Dostępny konektor nie ma operacji workflow_dispatch. Odczyt kolekcji workflows również został odrzucony jako nieobsługiwany endpoint. Nie próbowano obchodzić tego przez GET z mutacją i nie uruchomiono nieistniejącego przebiegu.
+- Użytkownik musi jednorazowo skonfigurować prywatny runner/sekret, a dla trwałej bazy także ograniczony token Contents read/write do prywatnego magazynu. Instrukcja nie wymaga włączenia komputera podczas wyszukiwania. Nie utworzono teraz repozytorium, tokenów ani sekretów w imieniu użytkownika.
+- Artefakty publicznego repozytorium nie są prywatnym magazynem: sprawdzono [zasady pobierania](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts). Dlatego szyfrowanie jest obowiązkowe. Sprawdzono również [zasady rozliczeń](https://docs.github.com/en/billing/concepts/product-billing/github-actions): standardowe runnery publiczne są bezpłatne, prywatne zużywają przydział planu. Dla 0 zł trzeba pozostać w przydziale i blokować płatne przekroczenie. Nie włączono żadnego płatnego zasobu.
+- Prywatne repozytorium ze snapshotem to trwały backend prototypu, nie wielkoskalowy serwer DB. Historia binarna rośnie; duży stan, konflikt lub błąd tokenu zatrzyma zapis zamiast nadpisać dane. Twarde anulowanie joba może uniemożliwić nowy backup; zachowany zostaje ostatni poprawny stan.
+
+**Wyniki testów:**
+
+- **93/93 przypadki przeszły, 0 błędów:** 62 Python (51 wcześniejszych + 11 chmurowych), 5 panel/most i 26 generator.
+- Testy obejmują ręczny trigger i parametry, uprawnienia/piny, brak jawnych artefaktów, poprawność raportu, brak danych firm i sekretów w publicznym podsumowaniu, GPG round-trip i zły klucz, snapshot/odtwarzanie SQLite i licznika/cache, walidację archiwów, prywatność magazynu, SHA lease oraz dwa przebiegi z odtworzeniem i deduplikacją.
+- Sprawdzono składnię workflow parserem JSON i YAML (te same dane), zgodność szablonu i zainstalowanej kopii oraz składnię awaryjnego skryptu raportującego. Nie deklarowano walidacji przez uruchomiony job GitHub ani actionlint (nie jest dostępny).
+- Początkowy test GPG wymagał agenta. Ustawiono jawny koszt S2K, eliminując kalibrację przez gpg-agent; szyfrowanie, odszyfrowanie i błędny klucz przetestowano na syntetycznych danych. Nie wyłączono weryfikacji integralności ani TLS.
+- Testy i diagnostyka używały wyłącznie syntetycznych rekordów lub pustych baz poza repozytorium. Żaden produkcyjny sekret nie był potrzebny do testów.
+
+**Rzeczywiste wyszukiwanie:**
+
+- Lokalnie uruchomiono wrapper z parametrami poznan/all/25 i losowym kluczem diagnostycznym wyłącznie w pamięci procesu. Wyszukiwanie nadal napotkało blokadę DNS/egress wykonawcy: znalezione 0, nowe 0, duplikaty 0, WWW 0, modernizacje 0; top scores brak. Błąd `discovery_blocked_or_failed` został pokazany uczciwie. Działało pakowanie szyfrowanego archiwum i bezpieczny raport.
+- Prywatny katalog diagnostyki: `/workspace/webforge-private/prospect-finder-v03/local-check/`. Nie trafił do GitHub ani Cloudflare.
+- **GitHub Actions nie zostało jeszcze uruchomione** z powodu opisanej konieczności jednorazowej konfiguracji. Nie ma potwierdzonej liczby firm znalezionych w chmurze; nie należy utożsamiać lokalnego 0 ani syntetycznych testów z wynikiem Actions. Cel 20–30 firm pozostaje do potwierdzenia po kliknięciu Run workflow.
+- Nie wysłano wiadomości, nie publikowano demonstracji ani danych rzeczywistych firm, nie zmieniono produkcyjnego WebForge/main i nie tworzono PR.
+
+**Następne kroki:** zapisać kod i audyt na feature, zweryfikować opublikowane pliki, następnie wykonać instrukcję w README_ACTIONS: prywatne repo sterujące → szablon na jego domyślnej gałęzi → sekret → Actions / Run workflow (poznan, all, 25). Dla kolejnych przebiegów wybrać tryb private-repository, aby zachować SQLite i liczniki. Harmonogram włączyć dopiero w osobnym zadaniu.
