@@ -567,3 +567,16 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 - Nie zmieniano `main`, głównej strony, formularzy, domeny, DNS ani konfiguracji Cloudflare; nie użyto płatnych usług i nie tworzono PR.
 - Publikacja gałęzi może uruchomić istniejącą integrację Cloudflare Pages zgodnie z informacją użytkownika. Udostępniane przykłady zawierają wyłącznie dane fikcyjne; rzeczywistego statusu wdrożenia nie należy utożsamiać z samym commitem GitHub.
 - Następnie sprawdzić zawartość gałęzi i katalog w istniejącym podglądzie Cloudflare, a w kolejnym zadaniu ewentualnie dodać zdjęcia lub panel. Statusy aktywności i automatyczne usuwanie demonstracji nie są częścią tej wersji.
+
+### 2026-10-27 — potwierdzenie publikacji wersji v0.2
+
+- Opublikowano wersję z listą firm, wariantami i katalogiem w commicie [6f03ebe](https://github.com/Yormiii/Moja-strona/commit/6f03ebe8a22cf53e8337a9d70a040d674837a3cf).
+- Gałąź: [feature/demo-generator](https://github.com/Yormiii/Moja-strona/tree/feature/demo-generator).
+- Ponownie odczytano z GitHub wszystkie 20 plików objętych przygotowanym zestawem (19 plików generatora i audyt); ich pełna treść była zgodna z wersją lokalną.
+- Sprawdzono drzewo GitHub: wszystkie 16 plików produkcyjnych ma niezmienione SHA. Lista gałęzi potwierdziła niezmieniony `main` i nowy commit na `feature/demo-generator`.
+- Dołączony katalog: [demo-generator/generated/index.html](https://github.com/Yormiii/Moja-strona/blob/feature/demo-generator/demo-generator/generated/index.html). To link do pliku w repozytorium; adres podglądu Cloudflare zależy od istniejącej konfiguracji.
+- Potwierdzono zapis w GitHub. Nie deklarowano osobnego sprawdzenia stanu wdrożenia Cloudflare ani nowych testów wizualnych. Uwzględniono automatyczną publikację tej gałęzi wskazaną przez właściciela: wszystkie nowe firmy i kontakty są fikcyjne.
+- Wyniki testów: 26/26 przypadków, kontrola składni i HTML pozytywne. Nie było potrzeby ponawiania testów kodu po tej dokumentacyjnej aktualizacji.
+- Nie użyto płatnych usług, nie tworzono PR i nie scalano z `main`.
+
+**Następny krok:** sprawdzić wygląd czterech wariantów i katalogu w istniejącym podglądzie Cloudflare; kolejne fikcyjne firmy można dodawać przez sam JSON i ponowny przebieg generatora.
