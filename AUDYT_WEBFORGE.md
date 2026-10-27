@@ -629,3 +629,16 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 4. Deduplikacja jest konserwatywna — warianty nazw i niejednoznaczne tożsamości mogą wymagać ręcznej weryfikacji. Ocena sprzedażowa jest jawną oceną źródła/reviewera, nie pomiarem rynku ani domysłem AI.
 5. Nie uruchamiać automatycznej komunikacji, Telegrama, publikacji rzeczywistych firm ani stron finalnych bez osobnych zadań i akceptacji. JSON szkicu nie może trafić przypadkiem do publicznego katalogu generatora.
 6. Po testach opublikować wyłącznie kod, fikcyjne przykłady i audyt na właściwej gałęzi oraz potwierdzić zawartość GitHub i niezmieniony `main`. Nie tworzyć PR i nie scalać.
+
+### 2026-10-27 — publikacja Prospect Finder v0.1 potwierdzona
+
+- Opublikowano moduł w commicie [d829cda](https://github.com/Yormiii/Moja-strona/commit/d829cdac9b9bd055fdb6ea4165ac06710ecb1e7f) na [feature/demo-generator](https://github.com/Yormiii/Moja-strona/tree/feature/demo-generator).
+- Ponownie odczytano wszystkie 18 publikowanych plików; ich pełna zawartość była identyczna z przygotowaną wersją lokalną.
+- Zweryfikowano drzewo GitHub: 33 istniejące pliki poza trzema świadomie modyfikowanymi (audyt, kod i instrukcja generatora) zachowały SHA. Dotyczy to wszystkich 16 plików produkcyjnych i wszystkich istniejących demonstracji.
+- W opublikowanym drzewie nie ma SQLite, plików bazy ani cache Pythona. Wszystkie dane przykładów są jawnie fikcyjne.
+- Lista gałęzi potwierdziła nowy commit na właściwej gałęzi i niezmieniony `main` (`8f07e41bdfad0d491b4d617c8a23a25a9465bb72`).
+- Wyniki testów: 58/58. Nie wysłano wiadomości, nie opublikowano demo rzeczywistej firmy, nie skonfigurowano płatnego API, nie tworzono PR i nie scalano z `main`.
+- Potwierdzono zapis w GitHub; nie deklarowano osobnej weryfikacji wdrożenia Cloudflare ani wizualnego testu Safari. Backend pozostaje lokalny, a panel służy do plików eksportu i decyzji.
+- Lista 30 branż pozostaje oznaczona jako robocza; live discovery i podłączenie konkretnego publicznego źródła wymagają następnego zadania.
+
+**Następne kroki:** potwierdzić listę branż, sprawdzić fikcyjny eksport w panelu na iPadzie i wybrać pierwsze rzeczywiste źródło do osobnego podłączenia. Zachować prywatne bazy i eksporty poza publicznie wdrażanym repozytorium.
