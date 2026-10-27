@@ -819,3 +819,12 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 4. **Actions → WebForge Prospect Finder (manual) → Run workflow**, nowy przebieg z poznan/all/25/wszystkie; zachować sekrety i wybrany magazyn. Przy trwałym stanie zachować repo/token i nie przełączać magazynu w celu obejścia budżetu. Nie używać starego Summary jako dowodu poprawki i nie wykonywać wielu prób pod rząd przy 429/Retry-After.
 5. Sprawdzić 73 testy, checkout aktualnego commita oraz pojedynczy raport rzeczywistego discovery. Przy błędzie użyć nowej tabeli kategorii/statusów/czasów. Ewentualny późniejszy pojedynczy test jednej branży (np. mechanik) pozwoli porównać obciążenie; mniejszy limit firm sam nie zmniejsza zapytania źródłowego.
 6. Nie uruchomiono ponownie workflow za użytkownika. Nie wysłano wiadomości, nie opublikowano demonstracji ani danych firm i nie włączono płatnych usług. Status pierwszego historycznego runu pozostaje nieudany; nie jest wstecznie zmieniany przez poprawkę kodu.
+
+### 2026-10-27 — publikacja poprawki Summary i diagnostyki potwierdzona
+
+- Kod, testy, oba workflow, README i audyt opublikowano w commicie [7c69b35](https://github.com/Yormiii/Moja-strona/commit/7c69b35928fbc6067cdab3f9d637e58f0e250bc5) na [feature/demo-generator](https://github.com/Yormiii/Moja-strona/tree/feature/demo-generator).
+- Zweryfikowano w drzewie GitHub sumy blobów wszystkich 10 zmienionych plików względem lokalnej treści. Wszystkie 52 pozostałe pliki zachowały SHA, w tym generator, panel i pliki produkcyjne.
+- Ref main nadal wskazuje `8f07e41bdfad0d491b4d617c8a23a25a9465bb72`. Nie zmieniano prywatnego repozytorium runnera, sekretów ani stanu. Nie tworzono PR i nie scalano zmian.
+- Weryfikacja końcowa: 73 testy Python, 5 panelu i 26 przypadków generatora przeszły; poprawny YAML/JSON i zgodne kopie workflow; cały zestaw Python nie zmienił odziedziczonego pliku Summary.
+- Nie uruchomiono nowego GitHub Actions. Pierwszy rzeczywisty run pozostaje failed/0 firm, a lokalna próba poprawki dns_error/0 firm/0 prób HTTP. Nie zadeklarowano sukcesu Overpass na podstawie testów syntetycznych.
+- Następne działanie użytkownika: skopiować aktualny szablon workflow do prywatnego runnera i wybrać nowy Run workflow (poznan/all/25/wszystkie), zachowując sekrety/magazyn. Podstawowa poprawka biblioteki działa także z dotychczasowym workflow, bo checkout pobiera aktualną feature. Nowe Summary pozwoli rozstrzygnąć kategorię błędu źródła bez ujawniania firm i sekretów.
