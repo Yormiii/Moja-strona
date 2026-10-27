@@ -764,3 +764,58 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 - Nie zmieniano main/produkcji, nie tworzono PR, nie włączono cyklicznych zapytań ani płatnego przekroczenia limitów, nie wysłano wiadomości i nie opublikowano demo.
 
 **Wymagane działanie użytkownika:** utworzyć prywatne repozytorium sterujące, skopiować szablon do jego domyślnej gałęzi, dodać PROSPECT_DATA_KEY i kliknąć Run workflow (poznan/all/25). Dla trwałej SQLite skonfigurować prywatny magazyn i token oraz wybrać private-repository. Dopiero wynik rzeczywistego runu pozwoli potwierdzić liczbę 20–30 firm.
+
+### 2026-10-27 — v0.3: analiza pierwszego runu, izolacja testów i diagnostyka Overpass
+
+**Zakres:** poprawki na `feature/demo-generator`. Bez zmiany `main`, produkcyjnego WebForge, działającego generatora, formularzy, punktacji, panelu i schematu SQLite. Bez wysyłki, publikacji demo rzeczywistych firm, płatnych usług i aktywnego harmonogramu.
+
+**Sprawdzony rzeczywisty przebieg:** [40602920321](https://github.com/Yormiii/webforge-prospect-runner/actions/runs/40602920321), job `discover` 122535255016 w prywatnym repozytorium runnera. Odczytano statusy kroków i log przez integrację GitHub. Testy: 62/62; discovery: błąd, 0 rzeczywistych firm, 3 próby HTTP; upload zaszyfrowanego artefaktu: sukces. Krok discovery trwał około 83 s, od 23:33:33 do 23:34:56 UTC. Nie należy utożsamiać wyniku testów z pozyskaniem firm.
+
+**Potwierdzony problem Summary i naprawa:**
+
+- `run_cloud()` odczytywał `GITHUB_STEP_SUMMARY` z otoczenia także podczas syntetycznych testów z wstrzykniętym discovery. Powodowało to dopisywanie fikcyjnego „completed / 1 firma” do tego samego podsumowania co właściwy nieudany przebieg. Poprzednie takie wpisy nie potwierdzają żadnej rzeczywistej firmy.
+- Funkcja biblioteczna ma teraz jawny opcjonalny `summary_path`, domyślnie bez zapisu do Summary. Wyłącznie komenda CLI uruchamiająca discovery przekazuje `GITHUB_STEP_SUMMARY`. Zapis lokalnych raportów testowych pozostaje w prywatnych katalogach tymczasowych testów.
+- Testy izolują zmienne sekretów i Summary; nie korzystają z sekretów runnera. Dodatkowa osłona w workflow zeruje `GITHUB_STEP_SUMMARY` dla procesu uruchamiającego testy. Obie kopie workflow są identyczne.
+- Dodano regresję z symulacją produkcyjnego pliku Summary: syntetyczny completed/1 pozostawia go bez zmian. Osobna regresja sprawdza pojedyncze podsumowanie failed/0 z diagnostyką oraz jawne wskazanie pliku wyłącznie przez CLI.
+- Ponadto uruchomiono cały zestaw 73 testów z odziedziczonym plikiem kontrolnym `GITHUB_STEP_SUMMARY`: plik pozostał bajtowo niezmieniony. Nie wykonano tych testów na rzeczywistym pliku Summary pierwszego runu.
+
+**Co ustalono o przyczynie błędu Overpass:**
+
+- Z dotychczasowego logu nie można rozstrzygnąć statusu HTTP ani kategorii błędu. Stary wrapper ukrywał surowy błąd, nie eksportując bezpiecznej klasyfikacji. Szczegół pozostaje w zaszyfrowanym raporcie właściciela; nie pobierano klucza ani nie deklarowano odszyfrowania tego artefaktu.
+- Trzy zarezerwowane próby są zgodne z ponawianymi błędami transportu lub HTTP 429/500/502/503/504. Stary klient ponawiał również przekroczenie rozmiaru treści. Około 83 s pasuje m.in. do kilkukrotnego timeoutu wykonania/odpowiedzi gateway, lecz **nie dowodzi HTTP 504** ani zbyt dużego zapytania.
+- Wstępny błąd lokalnego resolvera DNS dawałby 0 prób, więc nie tłumaczy bezpośrednio licznika 3 tego runu. Nadal możliwe są błędy w warstwie transportu/proxy po tej kontroli. Sam licznik rezerwacji prób nie dowodzi otrzymania trzech odpowiedzi HTTP.
+- HTTP 200 z `remark` lub nieprawidłowy JSON nie był ponawiany przez adapter, więc sam taki przypadek zwykle dałby 1 próbę. Nie wymyślano odpowiedzi serwera ani firmy zastępującej wynik 0.
+
+**Bezpieczna diagnostyka dodana do kodu i Summary:**
+
+- `NetworkError` zachowuje kontrolowaną kategorię; rozróżniane są m.in. DNS, timeout, TLS, połączenie, HTTP 407, 429, 4xx/5xx, odroczenie Retry-After, budżet, limit odpowiedzi i nieobsługiwane kodowanie.
+- Adapter rozróżnia nieprawidłowy JSON/payload oraz błąd czasu/pamięci/inny runtime w komunikacie `remark` Overpass, nawet przy HTTP 200. Dane częściowe nie są importowane.
+- Rejestrowane są próby odpowiedzi/błędu/cache z zakresem overpass/website, numerem próby, czasem, statusem HTTP jeśli istnieje i odczytanymi bajtami jeśli ukończono odpowiedź. Są widoczne również przy nieudanym discovery i błędzie przed HTTP.
+- Report zachowuje liczbowy rozmiar zapytania, liczbę klauzul, promień i limit wyników. Tabela publiczna jest ponownie filtrowana przez allowlistę kodów i ograniczonych liczb; nie przepuszcza firm, kontaktów, identyfikatorów OSM, URL, nagłówków, treści, surowych wyjątków ani sekretów. Zdarzenia mają ograniczoną liczbę wpisów.
+- Etykieta licznika to „Próby HTTP”, aby nie utożsamiać rezerwacji transportu z potwierdzonymi odpowiedziami. Brak HTTP przy DNS ma kategorię dns_error i próbę 0. Cache jest oznaczony osobno.
+
+**Optymalizacja źródła bez zwiększenia obciążenia/limitów:**
+
+- Zbiorcze zapytanie wcześniej zawierało **37 klauzul przestrzennych, 2691 bajtów**. Po połączeniu alternatyw tego samego tagu i usunięciu warunków już pokrytych szerszymi filtrami zawiera **8 klauzul, 901 bajtów**.
+- Zachowano wszystkie 30 skonfigurowanych branż i ich znaczenie. Przy pojedynczej branży pozostają szczegółowe warunki (np. barber). Klasyfikacja szczegółowa w Pythonie pozostaje bez zmian.
+- Nadal jedno zbiorcze żądanie, promień 30 km, serwerowy timeout 25 s, pamięć 64 MiB, 1500 obiektów, limit klienta 8 MiB, timeout klienta 35 s, maks. 3 próby, opóźnienia i Retry-After, cache, budżety dzienne/przebiegu. Nie rozbito zapytania na 30 żądań, nie zmieniono instancji serwera ani nie dodano obejścia limitów.
+- Nie ponawiamy deterministycznego błędu wielkości odpowiedzi ani kodowania; przerwanie po pierwszym pobraniu ogranicza zbędną pracę.
+- Jest to uzasadnione uproszczenie zapytania, **nie potwierdzona naprawa historycznej przyczyny**. Skuteczność w rzeczywistym Overpass wymaga nowego runu.
+
+**Testy i problemy weryfikacji:**
+
+- **73/73 testy Python**, 5 testów panelu i 26 przypadków generatora przeszły. Brak zmian generatora/panelu; sprawdzono ich regresje.
+- Nowe przypadki obejmują izolację testów i sekretów, rzeczywiste szyfrowanie syntetycznych wyników, jawny zapis Summary przez CLI, brak wycieku danych w diagnostyce, trzy próby timeoutu/HTTP 429/504, błąd źródła odczytany z cache, DNS i budżet przed transportem, nieprawidłowy JSON/payload, `remark` timeout/pamięć/runtime oraz przerwanie zbyt dużej odpowiedzi bez trzech pobrań.
+- Semantykę uproszczonych reguł porównano z pełną konfiguracją dla każdej z 30 branż i all na reprezentatywnych oraz 500 deterministycznie losowanych zestawach tagów. Pierwotny test wymagający literalnej obecności każdego węższego tagu w zbiorczym zapytaniu zastąpiono sprawdzeniem znaczenia reguł; zbędny tag może prawidłowo zniknąć po uproszczeniu.
+- Obie kopie workflow poprawnie parsują się jako JSON i YAML, ich treść jest identyczna, awaryjny skrypt Python ma poprawną składnię. `git diff --check` bez błędów. Nie deklarowano native walidacji GitHub nowego runu ani actionlint.
+- Lokalna rzeczywista próba nowego kodu: **0 firm, 0 prób HTTP, dns_error**. Prywatny raport i pusta baza: `/workspace/webforge-private/v03-diagnostic-real-zsi6mtru/`. Żadne rzeczywiste dane/eksporty/cache/sekrety nie trafiły do checkoutu ani Cloudflare. To ograniczenie lokalnego wykonawcy, nie wynik nowego GitHub Actions ani dowód awarii Overpass.
+- Wyniki syntetyczne są wyłącznie testowe. Nie potwierdzono jeszcze pozyskania 20–30 rzeczywistych firm.
+
+**Dokumentacja i następne kroki:**
+
+1. Zapisano instrukcję analizy pierwszego runu, kategorie błędów i dokładne ponowne uruchomienie w `prospect-finder/README_ACTIONS.md`; README główny modułu opisuje optymalizację i izolację.
+2. Opublikować tylko kod/dokumentację/audyt na `feature/demo-generator` i zweryfikować zapis. Nie modyfikować `main`, nie tworzyć PR ani nie zmieniać prywatnego runnera bez potrzeby.
+3. Użytkownik kopiuje aktualny szablon workflow do `.github/workflows/prospect-finder.yml` prywatnego `webforge-prospect-runner`, aby dodać dodatkową osłonę procesu testowego. Sam kod naprawy i diagnostyki jest pobierany z feature także przez istniejący workflow.
+4. **Actions → WebForge Prospect Finder (manual) → Run workflow**, nowy przebieg z poznan/all/25/wszystkie; zachować sekrety i wybrany magazyn. Przy trwałym stanie zachować repo/token i nie przełączać magazynu w celu obejścia budżetu. Nie używać starego Summary jako dowodu poprawki i nie wykonywać wielu prób pod rząd przy 429/Retry-After.
+5. Sprawdzić 73 testy, checkout aktualnego commita oraz pojedynczy raport rzeczywistego discovery. Przy błędzie użyć nowej tabeli kategorii/statusów/czasów. Ewentualny późniejszy pojedynczy test jednej branży (np. mechanik) pozwoli porównać obciążenie; mniejszy limit firm sam nie zmniejsza zapytania źródłowego.
+6. Nie uruchomiono ponownie workflow za użytkownika. Nie wysłano wiadomości, nie opublikowano demonstracji ani danych firm i nie włączono płatnych usług. Status pierwszego historycznego runu pozostaje nieudany; nie jest wstecznie zmieniany przez poprawkę kodu.

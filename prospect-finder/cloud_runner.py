@@ -20,6 +20,7 @@ from urllib.parse import quote
 
 from finder import Store, config, industries, private_path
 from live import discover_run, region_config
+from network import safe_diagnostics
 
 SOURCE_REPO='Yormiii/Moja-strona'
 STATE_PATH='state/prospect-state.tar.gpg'
@@ -154,18 +155,29 @@ def public_summary(report,storage,restored,errors):
     outcomes={k:v for k,v in report.get('outcomes',{}).items() if k in ('no_url','unknown','reachable','http_error','access_limited','robots_disallowed','network_error','budget_exceeded') and type(v) is int and v>=0}
     allowed_errors={'preflight_failed','state_restore_failed','discovery_failed','packaging_failed','state_save_failed','discovery_blocked_or_failed'}
     safe_errors=[e if e in allowed_errors else 'runner_failed' for e in errors]
-    return {'version':3,'outcome':report.get('outcome') if report.get('outcome') in ('completed','blocked_or_failed') else 'not_started','storage':storage if storage in ('temporary','private-repository') else 'invalid','state_restored':bool(restored),**counts,'top_scores':top,'website_outcomes':outcomes,'errors':safe_errors,'limitations':['Próbka OSM wymaga weryfikacji; brak WWW nie potwierdza braku strony.','Pełne rekordy i błędy są tylko w zaszyfrowanej paczce.','Artefakty są tymczasowe; ciągłość deduplikacji wymaga trybu private-repository.']}
+    return {'version':3,'outcome':report.get('outcome') if report.get('outcome') in ('completed','blocked_or_failed') else 'not_started','storage':storage if storage in ('temporary','private-repository') else 'invalid','state_restored':bool(restored),**counts,'top_scores':top,'website_outcomes':outcomes,'errors':safe_errors,'diagnostics':safe_diagnostics(report.get('diagnostics',{})),'limitations':['Próbka OSM wymaga weryfikacji; brak WWW nie potwierdza braku strony.','Pełne rekordy i błędy są tylko w zaszyfrowanej paczce.','Artefakty są tymczasowe; ciągłość deduplikacji wymaga trybu private-repository.']}
 
 
 def markdown(summary):
-    labels={'real_companies_found':'Znalezione firmy','new_records':'Nowe','duplicate_records':'Zduplikowane / już znane','with_website':'Z podanym adresem WWW','potential_modernizations':'Potencjalne modernizacje','network_requests':'Żądania HTTP','cache_hits':'Odczyty z cache'}
+    labels={'real_companies_found':'Znalezione firmy','new_records':'Nowe','duplicate_records':'Zduplikowane / już znane','with_website':'Z podanym adresem WWW','potential_modernizations':'Potencjalne modernizacje','network_requests':'Próby HTTP','cache_hits':'Odczyty z cache'}
     lines=['# WebForge Prospect Finder v0.3','',f"Stan: `{summary['outcome']}`",f"Magazyn: `{summary['storage']}`; odtworzono stan: `{summary['state_restored']}`",'','| Miara | Liczba |','|---|---:|']
     for key,label in labels.items():lines.append(f"| {label} | {summary[key] if summary[key] is not None else 'nieustalono'} |")
     lines+=['','Najwyższe wyniki (bez danych firm): '+(', '.join(str(x['score'])+'/100' for x in summary['top_scores']) or 'brak danych'),'','Wyniki kontroli WWW: '+(', '.join(f'{k}: {v}' for k,v in summary['website_outcomes'].items()) or 'nieustalono'),'', 'Błędy: '+(', '.join(summary['errors']) or 'brak zgłoszonych'),'',*['- '+x for x in summary['limitations']]]
+    diagnostic=summary['diagnostics']
+    if diagnostic['failure']:
+        lines+=['', 'Kategoria przerwania: `'+diagnostic['failure']+'`.']
+    if diagnostic['query']:
+        q=diagnostic['query'];lines+=['', 'Zapytanie Overpass: '+', '.join(f'{k}={v}' for k,v in q.items())+'.']
+    if diagnostic['events']:
+        lines+=['', '| Zakres | Zdarzenie | Kategoria | HTTP | Próba | ms | Bajty |','|---|---|---|---:|---:|---:|---:|']
+        for e in diagnostic['events']:
+            lines.append('| '+' | '.join(str(e.get(k,'—')) for k in ('scope','event','category','http_status','attempt','elapsed_ms','response_bytes'))+' |')
     return '\n'.join(lines)+'\n'
 
 
-def run_cloud(args,discover=discover_run):
+def run_cloud(args,discover=discover_run,*,summary_path=None):
+    # Library calls/tests never inherit the runner's production summary sink.
+    # Only the real CLI explicitly opts into GITHUB_STEP_SUMMARY in main().
     report={};errors=[];restored=False;store=None;state=None;stage='preflight';success=False
     output=private_path(args.output);work=private_path(args.workdir)
     output.mkdir(parents=True,exist_ok=True,mode=0o700);work.mkdir(parents=True,exist_ok=True,mode=0o700)
@@ -209,8 +221,8 @@ def run_cloud(args,discover=discover_run):
     safe=markdown(summary)
     (output/'summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2),encoding='utf8')
     (output/'summary.md').write_text(safe,encoding='utf8')
-    if os.environ.get('GITHUB_STEP_SUMMARY'):
-        with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf8') as stream:stream.write(safe)
+    if summary_path:
+        with open(summary_path,'a',encoding='utf8') as stream:stream.write(safe)
     print(safe)
     return 0 if success and not errors else 1
 
@@ -221,7 +233,7 @@ def main(argv=None):
     run=sub.add_parser('run');run.add_argument('--region',default='poznan');run.add_argument('--industry',default='all');run.add_argument('--limit',type=int,default=25);run.add_argument('--category',choices=['wszystkie','modernizacja'],default='wszystkie');run.add_argument('--storage',choices=['temporary','private-repository'],default='temporary');run.add_argument('--state-repository',default='');run.add_argument('--workdir',required=True);run.add_argument('--output',required=True)
     decrypt=sub.add_parser('decrypt');decrypt.add_argument('--input',required=True);decrypt.add_argument('--output',required=True)
     args=parser.parse_args(argv)
-    if args.command=='run':return run_cloud(args)
+    if args.command=='run':return run_cloud(args,summary_path=os.environ.get('GITHUB_STEP_SUMMARY'))
     crypt(args.input,args.output,key_from_env(),decrypt=True);print('Odszyfrowano prywatne archiwum TAR.GZ. Nie kopiuj go do repozytorium.');return 0
 
 

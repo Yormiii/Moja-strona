@@ -13,7 +13,7 @@ from urllib.parse import urlencode, urljoin, urlsplit, urlunsplit
 from urllib.robotparser import RobotFileParser
 
 from finder import config, industries, validate_record, url, matches, private_path, export_records
-from network import HttpClient, NetworkError, BudgetExceeded
+from network import HttpClient, NetworkError, BudgetExceeded, error_category, http_category, safe_diagnostics
 
 ATTRIBUTION = '© OpenStreetMap contributors — ODbL 1.0'
 COPYRIGHT = 'https://www.openstreetmap.org/copyright'
@@ -41,24 +41,37 @@ def classify(tags, rules=None):
     return None
 
 
-def build_query(region, industry=None):
+def query_groups(industry=None):
+    """Combine equivalent OR filters; drop narrower branches already covered."""
     rules = config('osm')['rules']
     if set(rules) != set(industries()): raise ValueError('Reguły OSM muszą pokrywać wszystkie skonfigurowane branże')
     if industry and industry not in rules: raise ValueError('Nieznana branża')
-    clauses = set()
+    simple=defaultdict(set);complex_groups=[]
     for key in ([industry] if industry else rules):
         for group in rules[key]:
-            filters = '["name"]'
-            for c in group:
-                tag = json.dumps(c['key'])
-                if 'contains' in c:
-                    filters += f'[{tag}~{json.dumps(re.escape(c["contains"]))},i]'
-                elif len(c['values']) == 1:
-                    filters += f'[{tag}={json.dumps(c["values"][0])}]'
-                else:
-                    pattern = '^('+'|'.join(re.escape(v) for v in c['values'])+')$'
-                    filters += f'[{tag}~{json.dumps(pattern)}]'
-            clauses.add(f'nwr(around:{region["radius_m"]},{region["lat"]},{region["lon"]}){filters};')
+            if len(group)==1 and 'values' in group[0]:simple[group[0]['key']].update(group[0]['values'])
+            else:complex_groups.append(group)
+    groups=[[{'key':key,'values':sorted(values)}] for key,values in sorted(simple.items())]
+    for group in complex_groups:
+        if any('values' in c and set(c['values'])<=simple.get(c['key'],set()) for c in group):continue
+        if group not in groups:groups.append(group)
+    return groups
+
+
+def build_query(region, industry=None):
+    clauses = set()
+    for group in query_groups(industry):
+        filters = '["name"]'
+        for c in group:
+            tag = json.dumps(c['key'])
+            if 'contains' in c:
+                filters += f'[{tag}~{json.dumps(re.escape(c["contains"]))},i]'
+            elif len(c['values']) == 1:
+                filters += f'[{tag}={json.dumps(c["values"][0])}]'
+            else:
+                pattern = '^('+'|'.join(re.escape(v) for v in c['values'])+')$'
+                filters += f'[{tag}~{json.dumps(pattern)}]'
+        clauses.add(f'nwr(around:{region["radius_m"]},{region["lat"]},{region["lon"]}){filters};')
     return '[out:json][timeout:25][maxsize:67108864];(\n'+'\n'.join(sorted(clauses))+'\n);out meta center 1500;'
 
 
@@ -112,11 +125,16 @@ class OverpassSource:
     def search(self, *, limit=25, industry=None, **filters):
         if not 1 <= limit <= 30: raise ValueError('Limit przebiegu: 1–30 firm')
         query = build_query(self.region,industry)
+        self.diagnostics={'query':{'clauses':query.count('nwr('),'query_bytes':len(query.encode()),'radius_m':self.region['radius_m'],'output_limit':1500}}
         response = self.client.request(self.client.cfg['overpass_endpoint'],method='POST',data=urlencode({'data':query}).encode(),overpass=True)
-        if response.status != 200: raise NetworkError(f'Overpass HTTP {response.status}')
+        if response.status != 200: raise NetworkError(f'Overpass HTTP {response.status}',category=http_category(response.status),http_status=response.status)
         try: payload = json.loads(response.body)
-        except (ValueError,UnicodeError) as exc: raise NetworkError('Overpass nie zwrócił JSON') from exc
-        if not isinstance(payload,dict) or payload.get('remark') or not isinstance(payload.get('elements'),list): raise NetworkError('Overpass zwrócił niepełne dane/błąd; przerwano import')
+        except (ValueError,UnicodeError) as exc: raise NetworkError('Overpass nie zwrócił JSON',category='invalid_json') from exc
+        if isinstance(payload,dict) and payload.get('remark'):
+            remark=str(payload['remark']).lower()
+            category='overpass_timeout' if 'timed out' in remark or 'timeout' in remark else 'overpass_memory_limit' if 'out of memory' in remark or 'memory limit' in remark else 'overpass_runtime_error'
+            raise NetworkError('Overpass zwrócił niepełne dane/błąd; przerwano import',category=category)
+        if not isinstance(payload,dict) or not isinstance(payload.get('elements'),list):raise NetworkError('Nieprawidłowe dane Overpass',category='invalid_payload')
         day = dt.datetime.fromtimestamp(response.fetched_at,dt.timezone.utc).date().isoformat()
         records = {}; seen_businesses=set()
         for element in payload['elements']:
@@ -136,7 +154,7 @@ class OverpassSource:
                 if identity in seen_businesses: continue
                 seen_businesses.add(identity);selected.append(r)
                 if len(selected)==limit: break
-        self.diagnostics={'source_objects':len(payload['elements']),'source_may_be_truncated':len(payload['elements'])>=1500,'mapped_candidates':len(records),'selected':len(selected),'cached_source':response.cached,'attribution':ATTRIBUTION,'copyright_url':COPYRIGHT}
+        self.diagnostics.update({'source_objects':len(payload['elements']),'source_may_be_truncated':len(payload['elements'])>=1500,'mapped_candidates':len(records),'selected':len(selected),'cached_source':response.cached,'attribution':ATTRIBUTION,'copyright_url':COPYRIGHT})
         return selected
 
 
@@ -239,8 +257,9 @@ def discover_run(store, *, region='poznan', limit=25, workdir=None, industry=Non
     owned=client is None;client=client or HttpClient(folder/'network-cache.sqlite3')
     run_id=dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid4().hex[:8]
     report={'version':3,'run_id':run_id,'source':'osm-overpass','region':region,'requested_limit':limit,'category':category,'outcome':'completed','real_companies_found':0,'stored_unique_records':0,'new_records':0,'duplicate_records':0,'with_website':0,'potential_modernizations':0,'top_scores':[],'exported_records':0,'attribution':ATTRIBUTION,'license_url':COPYRIGHT,'limitations':['Dane OSM mogą być niepełne/nieaktualne. Klasyfikacja branży wymaga weryfikacji.','Brak WWW w OSM nie potwierdza braku strony. Edycja OSM i działające WWW nie potwierdzają aktywności firmy.']}
+    source=OverpassSource(client,region);event_start=len(client.diagnostics)
     try:
-        source=OverpassSource(client,region);records=source.search(limit=limit,industry=industry)
+        records=source.search(limit=limit,industry=industry)
         report['source_diagnostics']=source.diagnostics;report['real_companies_found']=len(records)
         auditor=SiteAuditor(client)
         records=[auditor.audit(record) for record in records]
@@ -259,7 +278,10 @@ def discover_run(store, *, region='poznan', limit=25, workdir=None, industry=Non
         report['csv_export']=str(export_records(rows,folder/f'{run_id}.csv','csv'))
     except (NetworkError,ValueError,TypeError,json.JSONDecodeError) as exc:
         report['outcome']='blocked_or_failed';report['error']=str(exc)[:500]
+        report['failure_category']=error_category(exc) if isinstance(exc,NetworkError) else 'invalid_data'
     finally:
+        report['source_diagnostics']=source.diagnostics
+        report['diagnostics']=safe_diagnostics({'failure':report.get('failure_category'),'query':source.diagnostics.get('query',{}),'events':client.diagnostics[event_start:]})
         report['network_requests']=client.requests;report['cache_hits']=client.cache_hits
         if owned:client.close()
     path=folder/f'{run_id}-report.json'

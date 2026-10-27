@@ -2,6 +2,9 @@
 import copy
 import datetime as dt
 import json
+import random
+import ssl
+import urllib.error
 from pathlib import Path
 import socket
 import sys
@@ -11,8 +14,8 @@ from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 import finder as f
-from network import HttpClient,Response,NetworkError,BudgetExceeded,public_url,transport
-from live import build_query,region_config,classify,element_record,OverpassSource,SiteAuditor,PageSignals,discover_run
+from network import HttpClient,Response,NetworkError,BudgetExceeded,public_url,transport,error_category
+from live import build_query,query_groups,tag_matches,region_config,classify,element_record,OverpassSource,SiteAuditor,PageSignals,discover_run
 
 
 def resolver(host,port,**kwargs):return [(socket.AF_INET,socket.SOCK_STREAM,6,'',('93.184.216.34',port))]
@@ -43,10 +46,85 @@ class LiveTests(unittest.TestCase):
         q=build_query(region_config('poznan'))
         self.assertEqual(set(f.config('osm')['rules']),set(f.industries()));self.assertEqual(len(f.industries()),30)
         self.assertIn('[timeout:25]',q);self.assertIn('out meta center 1500',q);self.assertIn('around:30000,52.4064,16.9252',q)
-        for groups in f.config('osm')['rules'].values():
-            for group in groups:
-                for c in group:self.assertIn(json.dumps(c['key']),q)
+        self.assertEqual(q.count('nwr('),8);self.assertLess(len(q.encode()),1500)
         with self.assertRaises(ValueError):build_query(region_config('poznan'),'no-such-industry')
+
+    def test_compact_query_preserves_all_industry_rules_and_specific_filters(self):
+        rules=f.config('osm')['rules'];samples=[{}, {'shop':'unrelated'},{'name':'Agroturystyka FIKCYJNA','tourism':'guest_house'}]
+        values={}
+        for groups in rules.values():
+            for group in groups:
+                samples.append({c['key']:c.get('values',[c.get('contains','')])[0] for c in group})
+                for c in group:values.setdefault(c['key'],set()).update(c.get('values',[c.get('contains','')]))
+        rng=random.Random(41)
+        samples += [{key:rng.choice([None,'unknown',*sorted(vals)]) for key,vals in values.items()} for _ in range(500)]
+        for industry in [None,*rules]:
+            old=[g for key in ([industry] if industry else rules) for g in rules[key]];compact=query_groups(industry)
+            for tags in samples:
+                old_match=any(all(tag_matches(tags,c) for c in g) for g in old)
+                new_match=any(all(tag_matches(tags,c) for c in g) for g in compact)
+                self.assertEqual(new_match,old_match,(industry,tags))
+        barber=build_query(region_config('poznan'),'barber')
+        self.assertIn('["male"="yes"]',barber);self.assertIn('["female"="no"]',barber)
+
+    def test_diagnostic_failure_types_are_not_collapsed_or_leaked(self):
+        for exc,category in [(TimeoutError('SECRET timeout'),'timeout'),(socket.gaierror('SECRET DNS'),'dns_error'),(ssl.SSLError('SECRET TLS'),'tls_error'),(urllib.error.URLError(TimeoutError('SECRET proxy URL')),'timeout'),(ConnectionResetError('SECRET contact'),'connection_error')]:
+            self.assertEqual(error_category(exc),category)
+        c=self.client(lambda *a:(_ for _ in ()).throw(urllib.error.URLError(TimeoutError('PRIVATE URL'))),max_attempts=3)
+        store=f.Store(self.path/'diagnostic.sqlite3')
+        try:
+            report=discover_run(store,workdir=self.path/'private-diagnostic',client=c)
+            self.assertEqual(report['diagnostics']['failure'],'timeout');self.assertEqual(report['network_requests'],3)
+            self.assertEqual([e['attempt'] for e in report['diagnostics']['events']],[1,2,3])
+            self.assertNotIn('PRIVATE',json.dumps(report['diagnostics']));self.assertEqual(report['real_companies_found'],0)
+        finally:store.close()
+
+    def test_http_429_504_and_cached_failure_keep_status_and_query_diagnostics(self):
+        for status,category in [(429,'http_429'),(504,'http_5xx')]:
+            with self.subTest(status=status):
+                c=self.client(lambda *a:Response(status,{},b'PRIVATE server body',self.clock()))
+                store=f.Store(self.path/f'http-{status}.sqlite3')
+                try:
+                    report=discover_run(store,workdir=self.path/f'http-{status}',client=c)
+                    self.assertEqual(report['outcome'],'blocked_or_failed');self.assertEqual(report['network_requests'],3)
+                    d=report['diagnostics'];self.assertEqual(d['failure'],category);self.assertEqual(d['query']['clauses'],8)
+                    self.assertEqual([e['http_status'] for e in d['events']],[status]*3);self.assertNotIn('PRIVATE',json.dumps(d))
+                    again=discover_run(store,workdir=self.path/f'http-{status}',client=c)
+                    self.assertEqual(again['diagnostics']['events'][0]['event'],'cache');self.assertEqual(again['diagnostics']['failure'],category)
+                finally:store.close()
+                self.clock.now+=301
+
+    def test_overpass_200_runtime_timeout_memory_and_invalid_payload(self):
+        examples=[({'remark':'runtime error: Query timed out PRIVATE','elements':[]},'overpass_timeout'),({'remark':'runtime error: out of memory PRIVATE','elements':[]},'overpass_memory_limit'),({'remark':'PRIVATE unexpected runtime error','elements':[]},'overpass_runtime_error'),({'private':'bad shape'},'invalid_payload')]
+        c=self.client()
+        for index,(payload,category) in enumerate(examples):
+            c.wire=lambda *a:Response(200,{},json.dumps(payload).encode(),self.clock())
+            self.clock.now+=86401;store=f.Store(self.path/f'payload-{index}.sqlite3')
+            try:
+                report=discover_run(store,workdir=self.path/f'payload-{index}',client=c)
+                self.assertEqual(report['diagnostics']['failure'],category);self.assertNotIn('PRIVATE',json.dumps(report['diagnostics']));self.assertEqual(len(store.search()),0)
+            finally:store.close()
+
+    def test_invalid_json_is_diagnosed_without_importing_any_records(self):
+        c=self.client(lambda *a:Response(200,{},b'PRIVATE HTML not JSON',self.clock()))
+        with self.assertRaises(NetworkError) as caught:OverpassSource(c).search()
+        self.assertEqual(caught.exception.category,'invalid_json')
+
+    def test_oversized_response_is_not_downloaded_three_times(self):
+        def fail(*a):raise NetworkError('PRIVATE payload',category='response_too_large')
+        c=self.client(fail)
+        with self.assertRaises(NetworkError) as caught:OverpassSource(c).search()
+        self.assertEqual(caught.exception.category,'response_too_large');self.assertEqual(c.requests,1)
+        self.assertEqual(c.diagnostics[0]['category'],'response_too_large')
+
+    def test_dns_and_budget_diagnostics_record_zero_actual_http_calls(self):
+        c=self.client();c.resolver=lambda *a,**kw:(_ for _ in ()).throw(socket.gaierror('PRIVATE DNS'))
+        with self.assertRaises(NetworkError) as caught:OverpassSource(c).search()
+        self.assertEqual(caught.exception.category,'dns_error');self.assertEqual(c.requests,0)
+        self.assertEqual(c.diagnostics[0]['category'],'dns_error')
+        c2=self.client(max_requests_per_run=0)
+        with self.assertRaises(BudgetExceeded):OverpassSource(c2).search()
+        self.assertEqual(c2.diagnostics[0]['category'],'budget_exceeded')
 
     def test_specific_classification_before_broad(self):
         self.assertEqual(classify({'shop':'hairdresser','hairdresser':'barber'}),'barber')

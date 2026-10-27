@@ -9,6 +9,8 @@ Wersja v0.2 dodaje adapter **OpenStreetMap/Overpass**, wyszukiwanie rzeczywistyc
 
 Dodano ręczny workflow GitHub Actions, szyfrowane wyniki i opcjonalny trwały snapshot w osobnym prywatnym repozytorium. Nie zmienia to wyszukiwania v0.2 ani nie włącza harmonogramu. Dokładna konfiguracja bez zmiany main WebForge: [README_ACTIONS.md](README_ACTIONS.md). Sam plik workflow na feature nie wystarcza do workflow_dispatch — GitHub wymaga go na domyślnej gałęzi repozytorium sterującego.
 
+Po pierwszym rzeczywistym runie naprawiono izolację `GITHUB_STEP_SUMMARY`: wywołania biblioteczne/testowe nie zapisują do Summary runnera, a CLI wybiera ten plik jawnie. Dodano bezpieczne kategorie błędów, statusy HTTP i czasy prób, również przy nieudanym discovery. Wyniki syntetyczne nie są wynikami wyszukiwania. Analiza runu i ponowne uruchomienie: [README_ACTIONS.md](README_ACTIONS.md#analiza-pierwszego-runu-i-ponowna-próba).
+
 ## Rzeczywiste firmy — Poznań i okolice
 
 ```sh
@@ -24,7 +26,7 @@ python prospect-finder/finder.py --db ~/webforge-private/prospects-live.sqlite3 
 
 Region `poznan` to promień 30 km od współrzędnych 52.4064, 16.9252, skonfigurowany w `config/osm.json`. Nie korzystamy z geokodera/Nominatim ani API map kafelkowych. Można dodać region z centrum, promieniem do 50 km i prawidłowym województwem. To ograniczone zapytanie lokalne, nie pobieranie całej Polski. Dane o mieście pochodzą z tagów adresowych; gdy ich brakuje, zapisujemy „Nieustalona miejscowość (OSM)” i rzeczywiste współrzędne, zamiast przypisywać każdej firmie Poznań.
 
-`config/osm.json` ma reguły tagów dla **wszystkich 30 skonfigurowanych branż**. Powstaje jedno zbiorcze zapytanie `nwr`, z limitem czasu 25 s, pamięci 64 MiB i wyniku 1500 obiektów. Wyniki są klasyfikowane i próbkowane naprzemiennie według branż, od najbliższych punktów. Tagi bardziej szczegółowe (np. barber, agroturystyka) mają pierwszeństwo. Nie ma gwarancji znalezienia każdej branży: OSM ma nierówne pokrycie, a niektóre reguły są szerokie (myjnia nie potwierdza detailingu, centrum fitness osobistego trenera, ogrzewanie pomp ciepła). Takie dopasowania wymagają weryfikacji; informacja jest zachowana przy źródle.
+`config/osm.json` ma reguły tagów dla **wszystkich 30 skonfigurowanych branż**. Powstaje jedno zbiorcze zapytanie `nwr`, z limitem czasu 25 s, pamięci 64 MiB i wyniku 1500 obiektów. Równoważne alternatywy jednego tagu są łączone, a pokryte nimi węższe warunki usuwane: dla `all` to **8 klauzul / 901 bajtów zamiast 37 / 2691**. Promień i zasięg branż pozostają takie same; nie dodano osobnych żądań dla 30 branż ani przełączania serwerów. Szczegółowe filtry są zachowane przy wyborze pojedynczej branży. Wyniki są klasyfikowane i próbkowane naprzemiennie według branż, od najbliższych punktów. Tagi bardziej szczegółowe (np. barber, agroturystyka) mają pierwszeństwo. Nie ma gwarancji znalezienia każdej branży: OSM ma nierówne pokrycie, a niektóre reguły są szerokie (myjnia nie potwierdza detailingu, centrum fitness osobistego trenera, ogrzewanie pomp ciepła). Takie dopasowania wymagają weryfikacji; informacja jest zachowana przy źródle.
 
 Pobieramy tylko nazwane obiekty pasujące do konfiguracji, pomijamy oznaczone jako zamknięte/disused/abandoned i z `access=private`. Kontakty pochodzą z `contact:email`, `email`, `contact:phone`, `phone`; WWW z `contact:website`/`website`. Nie odgadujemy nazw, miejscowości, adresów e-mail, usług ani opisów. Brakujące `services` i `description` oznaczają, że przed ręczną akceptacją trzeba je potwierdzić.
 

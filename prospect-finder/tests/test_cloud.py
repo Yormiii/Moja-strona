@@ -22,7 +22,11 @@ TEST_KEY='1a'*32 # Synthetic test secret, never used for real results.
 
 
 class CloudTests(unittest.TestCase):
-    def setUp(self):self.tmp=tempfile.TemporaryDirectory(prefix='webforge-cloud-tests-');self.path=Path(self.tmp.name)
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory(prefix='webforge-cloud-tests-');self.path=Path(self.tmp.name)
+        # No real runner secrets or summary destination are inherited by fixtures.
+        self.env=patch.dict(os.environ,{'PROSPECT_DATA_KEY':'','PROSPECT_STATE_TOKEN':'','GITHUB_STEP_SUMMARY':str(self.path/'test-only-summary.md')})
+        self.env.start();self.addCleanup(self.env.stop)
     def tearDown(self):self.tmp.cleanup()
     def args(self,**kwargs):
         values=dict(region='poznan',industry='all',limit=25,category='wszystkie',storage='temporary',state_repository='',workdir=str(self.path/'work'),output=str(self.path/'output'));values.update(kwargs);return argparse.Namespace(**values)
@@ -43,6 +47,8 @@ class CloudTests(unittest.TestCase):
             if 'run' in step:self.assertNotIn('${{',step['run']);self.assertNotIn('git push',step['run'])
         upload=next(s for s in steps if s.get('uses','').startswith('actions/upload-artifact@'));self.assertEqual(upload['with']['retention-days'],1);self.assertTrue(upload['with']['path'].endswith('/results.tar.gpg'))
         self.assertIn('workflow_incomplete',steps[-1]['run'])
+        test_step=next(s for s in steps if s['name']=='Run offline tests')
+        self.assertTrue(test_step['run'].startswith('GITHUB_STEP_SUMMARY= '))
         self.assertNotIn('cache',json.dumps(w).lower());self.assertFalse(f.config('cloud')['future_schedule']['enabled'])
 
     def test_invalid_key_and_params_fail_before_discovery(self):
@@ -59,6 +65,38 @@ class CloudTests(unittest.TestCase):
         self.assertEqual(safe['new_records'],20);self.assertIn('45/100',c.markdown(safe))
         unsafe=c.public_summary({'new_records':'PRIVATE','outcomes':{'PRIVATE':1},'top_scores':[{'score':'PRIVATE','coverage_percent':0}]},'temporary',False,['PRIVATE'])
         self.assertNotIn('PRIVATE',json.dumps(unsafe))
+
+    def test_diagnostics_allow_only_categories_and_numbers(self):
+        secret='PRIVATE company test@example.invalid https://secret.invalid TOKEN'
+        raw={'diagnostics':{'failure':'http_5xx','query':{'clauses':8,'query_bytes':1000,'secret':secret},'events':[{'scope':'overpass','event':'response','category':'http_5xx','http_status':504,'attempt':3,'elapsed_ms':25000,'response_bytes':100,'body':secret,'headers':secret},{'scope':'website','event':'error','category':secret,'elapsed_ms':secret},{'scope':secret,'event':'error'}]}}
+        safe=c.public_summary(raw,'temporary',False,['discovery_blocked_or_failed']);encoded=json.dumps(safe)
+        self.assertNotIn(secret,encoded);self.assertNotIn('secret.invalid',c.markdown(safe));self.assertIn('504',c.markdown(safe))
+        self.assertEqual(safe['diagnostics']['failure'],'http_5xx');self.assertEqual(len(safe['diagnostics']['events']),2)
+        from network import safe_diagnostics
+        self.assertEqual(safe_diagnostics({'failure':[], 'events':[{'scope':'website','event':'error','category':{}}]})['events'][0]['category'],'network_other')
+
+    @unittest.skipUnless(shutil.which('gpg'),'GPG unavailable')
+    def test_synthetic_run_cannot_write_inherited_production_step_summary(self):
+        production=self.path/'production-summary.md';production.write_text('REAL RUN ONLY\n')
+        def synthetic(*a,**kw):return {'outcome':'completed','real_companies_found':1,'new_records':1,'duplicate_records':0}
+        with patch.dict(os.environ,{'PROSPECT_DATA_KEY':TEST_KEY,'GITHUB_STEP_SUMMARY':str(production)}),redirect_stdout(io.StringIO()):
+            self.assertEqual(c.run_cloud(self.args(),discover=synthetic),0)
+        self.assertEqual(production.read_text(),'REAL RUN ONLY\n')
+        self.assertEqual(f.load_json(self.path/'output/summary.json')['real_companies_found'],1)
+
+    def test_only_cli_explicitly_selects_github_summary_sink(self):
+        sink=str(self.path/'cli-test-summary.md')
+        with patch.dict(os.environ,{'GITHUB_STEP_SUMMARY':sink}),patch.object(c,'run_cloud',return_value=1) as run:
+            self.assertEqual(c.main(['run','--workdir',str(self.path/'w'),'--output',str(self.path/'o')]),1)
+        self.assertEqual(run.call_args.kwargs,{'summary_path':sink})
+
+    @unittest.skipUnless(shutil.which('gpg'),'GPG unavailable')
+    def test_failed_production_summary_has_no_synthetic_completed_result(self):
+        sink=self.path/'isolated-production.md'
+        failed={'outcome':'blocked_or_failed','real_companies_found':0,'new_records':0,'duplicate_records':0,'network_requests':3,'diagnostics':{'failure':'http_5xx','events':[{'scope':'overpass','event':'response','category':'http_5xx','http_status':504,'attempt':3}]}}
+        with patch.dict(os.environ,{'PROSPECT_DATA_KEY':TEST_KEY}),redirect_stdout(io.StringIO()):
+            self.assertEqual(c.run_cloud(self.args(),discover=lambda *a,**kw:failed,summary_path=sink),1)
+        text=sink.read_text();self.assertEqual(text.count('# WebForge'),1);self.assertNotIn('`completed`',text);self.assertIn('| Znalezione firmy | 0 |',text);self.assertIn('http_5xx',text);self.assertIn('504',text)
 
     @unittest.skipUnless(shutil.which('gpg'),'GPG unavailable')
     def test_encryption_roundtrip_and_wrong_key(self):

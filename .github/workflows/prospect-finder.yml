@@ -82,7 +82,7 @@
         },
         {
           "name": "Run offline tests",
-          "run": "python -m unittest discover -s prospect-finder/tests -v"
+          "run": "GITHUB_STEP_SUMMARY= python -m unittest discover -s prospect-finder/tests -v"
         },
         {
           "name": "Discover and encrypt private results",

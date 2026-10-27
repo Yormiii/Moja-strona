@@ -93,3 +93,40 @@ npm --prefix demo-generator test
 Testy sprawdzają kontrakt i składnię workflow (JSON będący YAML), ręczny trigger, parametry, uprawnienia i przypięte akcje, brak jawnych artefaktów, szyfrowanie/odszyfrowanie i zły klucz, bezpieczne odtwarzanie archiwum, backup SQLite/cache, prywatność magazynu i SHA lease, dwa przebiegi ze stanem i deduplikacją, liczniki raportu, brak sekretów i danych firm w Summary. Odpowiedzi GitHub i firmy w testach są syntetyczne; testy nie wykonują płatnych ani rzeczywistych operacji magazynu.
 
 Do uruchomienia w Actions potrzebna jest opisana konfiguracja panelu GitHub. Integracja dostępna w sesji nie ma narzędzia do `workflow_dispatch`, a domyślna gałąź źródła pozostaje nienaruszona. Nie deklaruj sukcesu chmury ani znalezienia rzeczywistych firm przed sprawdzeniem rzeczywistego runu.
+
+## Analiza pierwszego runu i ponowna próba
+
+Sprawdzono [rzeczywisty run 40602920321](https://github.com/Yormiii/webforge-prospect-runner/actions/runs/40602920321), job `discover` (122535255016). 62 testy przeszły. Krok discovery trwał około 83 s (23:33:33–23:34:56 UTC), zgłosił 3 próby HTTP, 0 rzeczywistych firm i `discovery_blocked_or_failed`; artefakt został przesłany. Testowe wpisy „1 firma / completed” w starym Summary należy zignorować. Nie dowodzą pozyskania firmy.
+
+Błąd izolacji był w kodzie: `run_cloud()` czytał odziedziczone `GITHUB_STEP_SUMMARY` także przy wstrzykniętym syntetycznym discovery. Teraz funkcja biblioteczna domyślnie nie zapisuje do Summary. Tylko produkcyjna komenda CLI jawnie przekazuje ścieżkę. Testy izolują też zmienne sekretów i Summary do własnego katalogu, a nowy workflow dodatkowo zeruje tę zmienną dla procesu testowego. Pełny zestaw testów został sprawdzony z odziedziczonym plikiem kontrolnym Summary: zawartość pozostała niezmieniona.
+
+**Przyczyna błędu źródła nie jest jeszcze potwierdzona.** Stary publiczny raport nie zachował kategorii/statusu/czasów poszczególnych prób; surowy błąd pozostaje w szyfrowanym raporcie właściciela. Trzy próby odpowiadają ponowieniom błędów transportu lub HTTP 429/500/502/503/504; stary kod ponawiał także błąd limitu treści. Sam brak DNS przy wstępnej walidacji dałby 0 prób, a HTTP 200 z `remark` albo niepoprawnym JSON zwykle 1. Czas około 83 s jest zgodny m.in. z kilkukrotnym timeoutem wykonania/odpowiedzią gateway, lecz nie dowodzi HTTP 504. Nie ustalono awarii Overpass na podstawie lokalnej blokady DNS tego środowiska.
+
+Zapytanie `all` zostało uproszczone bez zmiany znaczenia reguł: **37 → 8 klauzul przestrzennych, 2691 → 901 bajtów**. Nadal jedno zapytanie, 30 branż, 30 km dla Poznania, 25 s czasu serwera, 64 MiB pamięci, maksymalnie 1500 obiektów i 8 MiB pobierania. Retry/backoff, Retry-After, cache i limity nie zostały zwiększone. Nie ponawiamy deterministycznego przekroczenia wielkości odpowiedzi ani nieobsługiwanego kodowania, żeby nie pobierać trzykrotnie tej samej treści. To optymalizacja obciążenia, nie potwierdzona naprawa przyczyny historycznego runu.
+
+Nowe Summary pokazuje kategorię przerwania i tabelę: zakres `overpass`/`website`, zdarzenie `response`/`error`/`cache`, kategorię, HTTP jeśli uzyskano odpowiedź, numer próby, czas w ms i liczbę bajtów jeśli odczyt się zakończył. Osobno pokazuje tylko liczbowy rozmiar zapytania, liczbę klauzul, promień i limit obiektów. Próba 0 oznacza np. błąd DNS przed HTTP, cache nie oznacza nowego żądania. Licznik „Próby HTTP” oznacza rezerwacje prób transportu, nie liczbę potwierdzonych odpowiedzi.
+
+| Kategoria | Znaczenie i następny krok |
+|---|---|
+| `dns_error` | Resolver nie rozpoznał publicznego adresu; sprawdź sieć środowiska. |
+| `timeout` | Timeout klienta/transportu; nie jest automatycznie dowodem ciężkiego zapytania. |
+| `http_429` | Limit współdzielonego serwera; respektuj Retry-After i zaczekaj. |
+| `http_5xx` | Błąd serwera/gateway; konkretny status jest w tabeli, spróbuj później pojedynczym przebiegiem. |
+| `overpass_timeout` / `overpass_memory_limit` | HTTP 200 z komunikatem wykonania Overpass; nie importujemy częściowych danych. |
+| `response_too_large` | Przekroczono limit klienta; bez automatycznego ponawiania i zwiększania limitu. |
+| `tls_error` / `proxy_error` / `connection_error` | Błąd TLS, HTTP 407 lub połączenia; nie wyłączaj weryfikacji TLS/proxy. |
+| `invalid_json` / `invalid_payload` / `overpass_runtime_error` | Nieprawidłowa lub niepełna odpowiedź; brak importu i wymyślonych wyników. |
+| `budget_exceeded` / `retry_after_deferred` | Budżet albo odroczenie; poczekaj, nie resetuj stanu ani nie zmieniaj serwera w celu obejścia limitu. |
+| `network_other` | Niejednoznaczny błąd transportu; szczegóły tylko w prywatnym raporcie. |
+
+Dopuszczone są wyłącznie ustalone kody i ograniczone liczby. Tabela nie zawiera firm, identyfikatorów OSM, hostów stron firm, kontaktów, URL, nagłówków, treści odpowiedzi, wyjątków ani wartości sekretów. Testy sprawdzają odrzucanie takich pól. Diagnostyka obejmuje także nieudane i odczytane z cache odpowiedzi.
+
+**Ponowny test w panelu GitHub:**
+
+1. W `webforge-prospect-runner` zaktualizuj `.github/workflows/prospect-finder.yml` treścią [aktualnego szablonu z feature](https://github.com/Yormiii/Moja-strona/blob/feature/demo-generator/prospect-finder/workflow/prospect-finder.yml). Zatwierdź w prywatnym repozytorium sterującym. Nie zmieniaj `main` w `Moja-strona`. Aktualizacja dodaje dodatkową izolację procesu testowego; sama naprawa biblioteki i diagnostyka są pobierane z feature także przez dotychczasowy workflow.
+2. Otwórz **Actions → WebForge Prospect Finder (manual) → Run workflow** i utwórz **nowy przebieg**, zamiast używać starego Summary. Pozostaw gałąź domyślną prywatnego runnera.
+3. Ustaw `region=poznan`, `industry=all`, `limit=25`, `category=wszystkie`. Zachowaj istniejący sekret i wybrany tryb magazynu. Dla `private-repository` zachowaj repozytorium stanu i token; `temporary` nie zachowuje deduplikacji i budżetów między przebiegami. Nie przełączaj na temporary w celu pominięcia limitu trwałego stanu.
+4. Kliknij **Run workflow**. W kroku testów powinny przejść **73 testy Python**, a Summary zawierać jeden raport właściwego wyszukiwania. Sprawdź checkout aktualnego commita gałęzi w logu. Nie powtarzaj wielu runów pod rząd przy 429/Retry-After.
+5. Jeśli błąd wróci, odczytaj kategorię, HTTP i czasy z nowego Summary. Można udostępnić te kontrolowane liczby bez wysyłania odszyfrowanej bazy, kontaktów ani klucza. Jeśli trzeba porównać obciążenie, w późniejszej pojedynczej próbie wybierz np. `industry=mechanik`; sam mniejszy limit firm nie zmniejsza zapytania źródłowego (limit jest stosowany przy próbkowaniu odpowiedzi).
+
+Nie uruchomiono ponownie workflow w imieniu użytkownika. Lokalna rzeczywista próba poprawionej wersji: **0 firm / 0 prób HTTP / `dns_error`**. Jest to ograniczenie tego wykonawcy, a nie wynik nowego przebiegu GitHub Actions. Testy używają wyłącznie syntetycznych odpowiedzi i nie potwierdzają dostępności Overpass ani pozyskania 20–30 firm.
