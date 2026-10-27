@@ -51,6 +51,12 @@ if (typeof document !== 'undefined') {
       for (const c of r.contacts || []) { details.append(el('p', `${c.kind}: ${c.value} — ${c.verified_at}`)); link(details, 'Źródło kontaktu', c.source_url); }
       for (const s of r.sources || [r.source]) if (s) link(details, `Źródło: ${s.provider}`, s.url);
       if (r.website) link(details, 'Strona firmy', r.website);
+      if (r.geo) details.append(el('p',`Współrzędne źródła: ${r.geo.lat}, ${r.geo.lon}`));
+      if (r.source_metadata?.attribution) { details.append(el('p',r.source_metadata.attribution)); link(details,'Licencja i atrybucja danych',r.source_metadata.copyright_url); }
+      if (r.site_check) {
+        details.append(el('p',`Sprawdzenie WWW: ${r.site_check.outcome} · ${r.site_check.checked_at} · HTTP ${r.site_check.http_status ?? 'nieustalony'}`));
+        for (const signal of r.site_check.signals || []) details.append(el('p',`${signal.code}: ${signal.detail}`));
+      }
       card.append(details);
       const controls = el('div'); controls.className = 'review';
       const statusLabel = el('label', 'Nowy status'); const select = el('select');

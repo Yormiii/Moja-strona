@@ -1,8 +1,72 @@
-# WebForge Prospect Finder v0.1
+# WebForge Prospect Finder v0.2
 
 Osobny, lokalny moduł do wyszukiwania w zaimportowanych danych, oceny i ręcznej akceptacji firm. **Python 3.10+ i SQLite z biblioteki standardowej; bez instalacji pakietów i bez płatnych API.** Panel przeglądania eksportu działa w Safari na iPadzie.
 
-W tej wersji **nie ma pobierania firm z internetu**, skanowania stron, wysyłki, publikacji demo ani integracji Telegram. Są dwa adaptery lokalnych plików JSON: `test-json` (wyłącznie fikcyjne dane) i `public-json` (własny plik z udokumentowanymi publicznymi informacjami). To działająca baza pod kolejne źródła; interfejs `SourceAdapter.search()` pozwala dołączyć je później bez zmiany punktacji i SQLite. W przyszłości każde źródło wymaga sprawdzenia dostępu, warunków użycia i sposobu weryfikacji — niczego takiego nie podłączono teraz.
+Wersja v0.2 dodaje adapter **OpenStreetMap/Overpass**, wyszukiwanie rzeczywistych firm i ostrożne sprawdzanie ich stron głównych. Dotychczasowe adaptery `test-json` i `public-json`, SQLite, punktacja i panel pozostają dostępne. Nie ma wysyłki, publikacji demo rzeczywistych firm, Telegrama ani płatnych API. Interfejs `SourceAdapter.search()` umożliwia dodawanie kolejnych źródeł; pobieranie i audyt są oddzielone od bazy i punktacji.
+
+
+## Rzeczywiste firmy — Poznań i okolice
+
+```sh
+# Wszystkie 30 branż, próbka maksymalnie 25 firm, z kontrolą WWW.
+python prospect-finder/finder.py --db ~/webforge-private/prospects-live.sqlite3 discover --region poznan --limit 25 --workdir ~/webforge-private/live
+
+# Tylko konkretna branża albo eksport kategorii modernizacji.
+python prospect-finder/finder.py --db ~/webforge-private/prospects-live.sqlite3 discover --region poznan --limit 25 --industry mechanik --workdir ~/webforge-private/live
+python prospect-finder/finder.py --db ~/webforge-private/prospects-live.sqlite3 discover --region poznan --limit 30 --category modernizacja --workdir ~/webforge-private/live
+```
+
+`discover` odpytuje rzeczywiste źródło, sprawdza strony, zapisuje rekordy jako **znaleziony** i tworzy prywatne CSV, JSON oraz raport. Nie akceptuje firmy, nie nadaje kontaktu i nie generuje demo. Limit to 1–30 firm na przebieg. Kategorie filtrują wyniki po audycie: próbka 25 firm nie oznacza 25 potwierdzonych problemów ani 25 wyników modernizacji.
+
+Region `poznan` to promień 30 km od współrzędnych 52.4064, 16.9252, skonfigurowany w `config/osm.json`. Nie korzystamy z geokodera/Nominatim ani API map kafelkowych. Można dodać region z centrum, promieniem do 50 km i prawidłowym województwem. To ograniczone zapytanie lokalne, nie pobieranie całej Polski. Dane o mieście pochodzą z tagów adresowych; gdy ich brakuje, zapisujemy „Nieustalona miejscowość (OSM)” i rzeczywiste współrzędne, zamiast przypisywać każdej firmie Poznań.
+
+`config/osm.json` ma reguły tagów dla **wszystkich 30 skonfigurowanych branż**. Powstaje jedno zbiorcze zapytanie `nwr`, z limitem czasu 25 s, pamięci 64 MiB i wyniku 1500 obiektów. Wyniki są klasyfikowane i próbkowane naprzemiennie według branż, od najbliższych punktów. Tagi bardziej szczegółowe (np. barber, agroturystyka) mają pierwszeństwo. Nie ma gwarancji znalezienia każdej branży: OSM ma nierówne pokrycie, a niektóre reguły są szerokie (myjnia nie potwierdza detailingu, centrum fitness osobistego trenera, ogrzewanie pomp ciepła). Takie dopasowania wymagają weryfikacji; informacja jest zachowana przy źródle.
+
+Pobieramy tylko nazwane obiekty pasujące do konfiguracji, pomijamy oznaczone jako zamknięte/disused/abandoned i z `access=private`. Kontakty pochodzą z `contact:email`, `email`, `contact:phone`, `phone`; WWW z `contact:website`/`website`. Nie odgadujemy nazw, miejscowości, adresów e-mail, usług ani opisów. Brakujące `services` i `description` oznaczają, że przed ręczną akceptacją trzeba je potwierdzić.
+
+### Brak strony, niedostępność i modernizacja
+
+- Brak tagu WWW albo `website=no` w OSM pozostaje **unknown**, a nie automatyczne „potwierdzony brak strony”. Sam wpis w mapie może być niepełny lub stary.
+- Podany adres WWW jest opisany jako deklaracja źródła. Dostępność jest oceniana oddzielnie w `site_check`. HTTP 404/5xx nie oznacza braku strony lub nieaktywności firmy.
+- Do HTTP 404/410 i 5xx zapisujemy potwierdzony techniczny sygnał pojedynczego pomiaru. 401/403/407/429/451, pozostałe niejednoznaczne 4xx, timeout, błąd DNS/proxy/TLS, robots lub limit pozostają nieustalone/ograniczone — nie dostają automatycznie punktów za wadliwą stronę.
+- W HTML można potwierdzić element Flash/frameset jako oznakę starej technologii; daje to punktowane `outdated` z uzasadnieniem. Nie sprawdzamy wieku domeny i nie oceniamy estetyki na tej podstawie.
+- Brak meta viewport lub jawne zasoby HTTP przy HTTPS są wskazówkami do sprawdzenia, nie dowodem uszkodzonego mobile lub niedziałających zasobów. Nie ma renderowania JS/CSS, pomiarów wizualnych ani analizy oferty przez AI.
+- OSM timestamp jest datą edycji mapy, **nie oznaką aktywności firmy**. Działający HTTP również sam nie daje punktów aktywności ani potencjału sprzedażowego. Te kryteria nadal wymagają osobnych dowodów.
+
+### Ochrona źródeł i sieci
+
+`config/network.json` zawiera niskie limity prototypu:
+
+| Limit | Domyślnie |
+|---|---:|
+| Żądania HTTP na przebieg / dzień | 100 / 200 |
+| Żądania Overpass na dzień | 10 |
+| Minimalna przerwa na host / Overpass | 2 s / 10 s |
+| Próby jednego żądania | maks. 3 |
+| Timeout strona / Overpass | 15 s / 35 s |
+| Maks. oczekiwanie na jedno odroczenie | 30 s; dłuższe odroczenie zatrzymuje ruch zamiast wcześniejszego ponowienia |
+| Odpowiedź strona / Overpass | 1 MiB / 8 MiB |
+| Pobieranie w dzień | 50 MiB; błędne próby rezerwują pełny limit odpowiedzi |
+| Cache WWW / OSM / błędy | 6 h / 24 h / 5 min; dłuższy Retry-After ma pierwszeństwo |
+| Przekierowania | maks. 3 |
+
+Cache i dzienny licznik zapytań są w prywatnym `network-cache.sqlite3`, więc ponowne uruchomienie nie zeruje limitów. Żądania są sekwencyjne, z narastającym opóźnieniem i jitterem po błędzie. Honorujemy `Retry-After`, także dla innych ścieżek tego samego hosta. Długi termin blokuje dalsze żądania do czasu jego upływu. Cache nie udaje nowej weryfikacji — zachowuje datę pobrania; ciepły cache może działać bez DNS.
+
+Przed stroną główną pobieramy `robots.txt`. Odmowa, nieobsługiwane przekierowanie lub niepewny błąd robots powodują pominięcie strony. Brak pliku robots (404) zezwala na sprawdzenie. Honorujemy `Crawl-delay`; zbyt duże opóźnienie oznacza pominięcie. Nie pobieramy podstron, skryptów, obrazów, formularzy ani innych zasobów. Nie wykonujemy JS i nie wysyłamy formularzy. Przekierowania na nowy host wymagają ponownego sprawdzenia robots i bezpiecznego adresu.
+
+Klient zachowuje proxy środowiska i weryfikację TLS. Odrzuca login/hasło, nieobsługiwane porty/schematy oraz lokalne/prywatne adresy, sprawdzając DNS przed żądaniem. Nie jest publicznym proxy ani usługą dla niezaufanych użytkowników; filtrowanie URL/DNS nie zastępuje polityki egress i nie daje gwarancji ochrony przed wszystkimi odmianami DNS rebinding. Hosty produkcyjnego WebForge są wyłączone z audytu. Jedyne POST to odczytowe zapytanie do skonfigurowanego Overpass.
+
+Publiczny Overpass to współdzielony serwer bez gwarancji dostępności; nie jest docelowym backendem masowej aplikacji. Nie przełączamy automatycznie serwerów, aby omijać limity. Nasze limity są znacznie niższe od ogólnych wskazówek operatora. Źródła zasad: [Overpass — Commons](https://dev.overpass-api.de/overpass-doc/en/preface/commons.html), [OpenStreetMap — licencja i atrybucja](https://www.openstreetmap.org/copyright).
+
+Dane OSM wymagają atrybucji **© OpenStreetMap contributors** i informacji o ODbL. Zachowujemy je w `source_metadata`, JSON, CSV i panelu. Przy przyszłym udostępnianiu danych pochodnych trzeba zachować odpowiednie warunki ODbL — obecna wersja nie publikuje bazy, eksportów ani demo realnych firm.
+
+### Wynik próby w tym środowisku
+
+Próba `--limit 25` z 27 października 2026 zakończyła się **0 rzeczywiście znalezionych firm**. Ochrona przed niebezpiecznym DNS/egress nie mogła bezpiecznie rozpoznać adresu Overpass; wcześniejszy bezpośredni test urllib zwrócił `Operation not permitted`. Próba z dodatkowym uprawnieniem sieciowym została przerwana przy przerwaniu zadania. Po wznowieniu nie obchodzono proxy ani ochrony sieci.
+
+Program zwrócił kod **2** (`blocked_or_failed`) i raport poza repozytorium, a nie fikcyjne wyniki udające znalezione firmy. Kod 0 oznacza ukończony przebieg (także mniej wyników niż limit); 1 — błąd danych/konfiguracji/ścieżki; 2 — nieudany przebieg sieciowy ze szczegółowym raportem. Liczby w raporcie rozróżniają znalezione obiekty, unikalne rekordy zapisane w SQLite i wyniki eksportu po filtrze modernizacji.
+
+Gotowe polecenie powyżej należy wykonać w prywatnym środowisku z działającym DNS/HTTPS. **Nie kopiuj SQLite, cache ani eksportów do katalogu Cloudflare.** W tym zadaniu wszystkie pliki próby zostały zapisane pod `/workspace/webforge-private/prospect-finder-v02/`, poza `/workspace/WebForge`. W repozytorium są tylko kod, dokumentacja i dotychczasowe fikcyjne przykłady. Nie uruchomiono wysyłki, płatnego API ani generatora demo rzeczywistej firmy.
 
 ## Bezpieczny start na danych fikcyjnych
 
@@ -47,7 +111,7 @@ python prospect-finder/finder.py find --help
 
 ## Format danych i źródła
 
-Pełny przykład: `fixtures/companies.json`. Plik adaptera ma `dataset_type: "fictional"` lub `"public"` i tablicę `records`. Źródła konfiguruje się w `config/sources.json`; można dodać kolejne pliki JSON jako nowe wpisy tego samego typu. Nowy typ zdalnego adaptera wymaga implementacji interfejsu w kodzie. Obecna wersja nie wykonuje połączeń HTTP.
+Pełny przykład: `fixtures/companies.json`. Plik adaptera ma `dataset_type: "fictional"` lub `"public"` i tablicę `records`. Źródła konfiguruje się w `config/sources.json`; można dodać kolejne pliki JSON jako nowe wpisy tego samego typu. Nowy typ zdalnego adaptera wymaga implementacji interfejsu w kodzie. Adaptery plikowe nie wykonują połączeń HTTP; adapter sieciowy Overpass opisano powyżej.
 
 Każdy rekord wymaga:
 
@@ -67,7 +131,7 @@ Każdy fakt to `{value, source_url, verified_at, note}`. Obsługiwane klucze:
 | `outdated`, `mobile_issues`, `unclear_offer`, `technical_issues` | `true`, `false`, `null` |
 | `sales_potential` | `low`, `medium`, `high`, `unknown` |
 
-Nieznane pola są odrzucane, także `status`, `assessment`, `contact_permission` i pola sekretów w imporcie. Źródło nie może samo zaakceptować firmy lub nadać zgody na kontakt. `website: null` bez dowodu oznacza **nieustalony stan**, nie potwierdzony brak strony. Źródła/WWW wymagają HTTP/HTTPS bez hasła, loginu, query i fragmentu — w v0.1 stosuj stabilne publiczne linki. Daty i oceny pochodzą z dokumentacji importu; program nie twierdzi, że sam zweryfikował je w sieci.
+Nieznane pola są odrzucane, także `status`, `assessment`, `contact_permission` i pola sekretów w imporcie. Źródło nie może samo zaakceptować firmy lub nadać zgody na kontakt. `website: null` bez dowodu oznacza **nieustalony stan**, nie potwierdzony brak strony. Źródła/WWW wymagają HTTP/HTTPS bez hasła, loginu, query i fragmentu — stosuj stabilne publiczne linki. Dla importów JSON daty i oceny pochodzą z dokumentacji importu. Adapter OSM zachowuje datę pobrania, a audyt WWW datę pomiaru HTTP; żaden z nich nie potwierdza automatycznie całego profilu firmy.
 
 ```sh
 # Własny plik tylko z rzeczywiście publicznymi, udokumentowanymi danymi, poza repo.
@@ -145,4 +209,4 @@ node prospect-finder/tests/panel.test.mjs
 npm --prefix demo-generator test
 ```
 
-Nie dodano live discovery, automatycznego audytu witryn, AI, publikacji rzeczywistych firm, wysyłki, płatnych usług ani nowego hostingu. Koszt bibliotek/API: **0 zł**. Korzystanie z istniejącego komputera/hostingu pozostaje według jego warunków. Przed podłączeniem prawdziwego źródła i komunikacji należy osobno zweryfikować dane, warunki źródła i podstawę kontaktu. Zatwierdzona lista 30 branż i konfiguracja udostępnienia panelu na iPadzie pozostają do potwierdzenia.
+Dodano ograniczone live discovery OSM i kontrolę HTTP/HTML strony głównej. Nie dodano audytu renderowanego wyglądu, AI, publikacji demo rzeczywistych firm, wysyłki, płatnych usług ani nowego hostingu. Koszt bibliotek/API: **0 zł**. Korzystanie z istniejącego komputera/hostingu pozostaje według jego warunków. Przed podłączeniem kolejnych źródeł i komunikacji należy osobno zweryfikować dane, warunki źródła i podstawę kontaktu. Zatwierdzona lista 30 branż i konfiguracja udostępnienia panelu na iPadzie pozostają do potwierdzenia.

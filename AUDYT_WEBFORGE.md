@@ -642,3 +642,53 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 - Lista 30 branż pozostaje oznaczona jako robocza; live discovery i podłączenie konkretnego publicznego źródła wymagają następnego zadania.
 
 **Następne kroki:** potwierdzić listę branż, sprawdzić fikcyjny eksport w panelu na iPadzie i wybrać pierwsze rzeczywiste źródło do osobnego podłączenia. Zachować prywatne bazy i eksporty poza publicznie wdrażanym repozytorium.
+
+### 2026-10-27 — Prospect Finder v0.2: OpenStreetMap i kontrola stron WWW
+
+**Kontynuacja po przerwaniu:** przed przerwaniem odczytano istniejący kod, audyt i zasady źródła oraz sprawdzono sieć; nie było jeszcze zapisanej implementacji v0.2. Po wznowieniu zachowano bazę projektu i dokończono moduł na tej samej gałęzi. Bazowy commit GitHub: `b8c08b3118d1e06772f5ec2ebad6f84e337a18ac`.
+
+**Wykonane działania:**
+
+- Dodano adapter `OverpassSource` w `prospect-finder/live.py` i polecenie `discover`. Istniejące importy JSON, SQLite, deduplikacja, statusy, punktacja i most do generatora pozostają dostępne.
+- `config/osm.json` zawiera mapowanie tagów dla wszystkich 30 aktualnie skonfigurowanych branż i region Poznań: centrum 52.4064/16.9252, promień 30 km, województwo wielkopolskie. Lista branż zachowuje roboczy status ustalony w poprzednim zadaniu.
+- Powstaje jedno zbiorcze zapytanie Overpass, z czasem 25 s, deklaracją pamięci 64 MiB i maks. 1500 obiektami. Nie używa się geokodera, map kafelkowych ani ręcznie wpisanych firm. Próba wybiera maks. 25 (konfigurowalnie 1–30) rekordów, naprzemiennie według znalezionych branż, w kolejności od najbliższych punktów.
+- Nazwy, adresy, publiczne kontakty i WWW pochodzą wyłącznie z tagów OSM; każdy rekord ma link do obiektu OSM, datę odczytu, współrzędne i atrybucję. Brak miasta zapisuje się jako nieustalony, zamiast przypisywać wszystkim firmom Poznań. Zamknięte/porzucone obiekty i obiekty z access=private są pomijane.
+- Niepełny, błędny lub oznaczony remarkiem wynik Overpass nie jest importowany jako kompletne wyszukiwanie. Mapowanie jest heurystyczne i wymaga sprawdzenia: np. myjnia nie potwierdza detailingu, a centrum fitness osobistego trenera.
+- `network.py` zapewnia standardowy klient HTTP z domyślną weryfikacją TLS, odziedziczonym proxy, wyłączonymi automatycznymi przekierowaniami i kontrolą adresów przed żądaniem. Odrzuca lokalne/prywatne adresy, nieobsługiwane porty i dane logowania. To narzędzie lokalne, nie publiczny proxy; ochrona URL/DNS nie zastępuje polityki egress ani nie gwarantuje pełnej ochrony przed DNS rebinding.
+- `config/network.json`: maks. 100 żądań w przebiegu, 200 na dzień, 10 Overpass na dzień; przerwy na host 2 s, Overpass 10 s; maks. 3 próby, narastające opóźnienie i jitter, respektowanie Retry-After także dla innych ścieżek hosta. Zbyt długie odroczenie wstrzymuje zapytania zamiast ponawiać je za wcześnie.
+- Limity odpowiedzi 1 MiB dla strony i 8 MiB dla Overpass, 50 MiB na dzień, maks. 3 przekierowania; błędne próby rezerwują pełny limit pobierania. Limity i cache są trwałe w prywatnym SQLite, nie zerują się po ponownym uruchomieniu.
+- Cache: WWW 6 godzin, Overpass 24 godziny, odpowiedzi błędne 5 minut lub dłuższy Retry-After. Ciepły cache działa bez DNS i zachowuje datę pierwotnego pobrania.
+- `SiteAuditor` sprawdza robots.txt i tylko stronę główną. Respektuje odmowę i Crawl-delay; błędy lub nieobsługiwane przekierowania robots powodują pominięcie, a 404 robots dopuszcza odczyt. Przy przekierowaniu na inny host ponownie sprawdzana jest polityka robots. Nie pobiera zasobów ani formularzy, nie wykonuje JS i nie wysyła wiadomości.
+- Dostępność jest zapisywana osobno w `site_check`: reachable, http_error, access_limited, robots_disallowed, network_error, budget_exceeded lub no_url. HTTP 404/410 i 5xx są udokumentowanymi technicznymi sygnałami pojedynczego pomiaru; nie oznaczają braku strony ani nieaktywności.
+- Brak tagu WWW lub website=no w OSM pozostaje unknown. Brak strony może nadal być potwierdzony ręcznym, udokumentowanym faktem z dotychczasowego modułu, ale nie jest zgadywany z niepełnej mapy, timeoutu lub 404.
+- Flash/frameset jest punktowaną oznaką starej technologii. Brak meta viewport i zasoby HTTP przy HTTPS pozostają jedynie wskazówkami do kontroli, bez automatycznych punktów za mobile/awarię. Nie sprawdza się wieku domeny ani nie ocenia wyglądu na jego podstawie.
+- Data edycji OSM i działające WWW nie dają automatycznych punktów aktywności firmy ani potencjału sprzedażowego. Kategorie i ocena 0–100 nadal wykorzystują dowody; modernizacja pozostaje niezależna od branży.
+- JSON/CSV zachowują współrzędne, metadane licencji i wynik audytu. Panel nadal działa na prywatnym eksporcie; dodano wyświetlanie atrybucji, współrzędnych i diagnostyki WWW.
+- Kod adapterów jest oddzielony od transportu i magazynu, co umożliwia dodawanie kolejnych źródeł. Nie dodano płatnych API, publikacji demo rzeczywistych firm ani workerów komunikacji.
+
+**Zasady źródła:** sprawdzono [Overpass — Commons](https://dev.overpass-api.de/overpass-doc/en/preface/commons.html) i [OpenStreetMap — licencja](https://www.openstreetmap.org/copyright). To współdzielony serwer; prototyp stosuje małe zapytania i limity, bez przełączania serwerów w celu obchodzenia ograniczeń. Atrybucja „© OpenStreetMap contributors”, ODbL i link licencji są zachowane przy danych. Nie uruchomiono masowej ani wieloużytkownikowej usługi na publicznym Overpass.
+
+**Próba rzeczywista i ograniczenie środowiska:**
+
+- Uruchomiono gotowe polecenie z limitem 25 rzeczywistych firm dla regionu poznan.
+- **Rzeczywiście znalezione firmy: 0. Zapisane unikalne rekordy: 0. Wyeksportowane rekordy: 0.** Nie zastąpiono ich danymi fikcyjnymi i nie osiągnięto celu 20–30 firm z powodu środowiska sieciowego.
+- Pierwszy test urllib zwrócił `Operation not permitted`. Próba z dodatkowym uprawnieniem sieciowym została przerwana przy przerwaniu zadania. Gotowy moduł po wznowieniu zwrócił `blocked_or_failed`, kod 2 i informację o braku bezpiecznego rozpoznania DNS. Do wykonania żądania HTTP Overpass nie doszło.
+- Raport: `/workspace/webforge-private/prospect-finder-v02/live/20261027T224108Z-9167ec32-report.json`. Baza i cache próby znajdują się w tym samym prywatnym drzewie, poza `/workspace/WebForge` i katalogiem Cloudflare. SQL potwierdził pustą bazę wyników.
+- Nie obchodzono proxy, blokad sieci ani weryfikacji TLS. Nie stwierdzono awarii samego Overpass na podstawie ograniczenia wykonawcy.
+
+**Testy i dokumentacja:**
+
+- **81/81 przypadków przeszło, 0 błędów:** 50 testów Python (27 wcześniejszych i 23 sieciowe z symulowanymi odpowiedziami), 5 panelu/mostu oraz 26 regresyjnych generatora.
+- Sprawdzono pokrycie 30 branż w zapytaniu, klasyfikację, zakres geograficzny, kontakty i atrybucję, unknown bez WWW, pomijanie zamkniętych obiektów, cache/wygaśnięcie i pracę bez DNS, limity per host/przebieg/dzień, opóźnienia, Retry-After, błędy sieci, wielkość odpowiedzi i budżet pobierania.
+- Sprawdzono robots i Crawl-delay także dla kolejnego rekordu hosta, blokowanie prywatnych przekierowań i produkcyjnego hosta, brak fałszywych punktów po błędzie sieci, potwierdzone legacy markup, wskazówki mobile oraz pełny syntetyczny przebieg discovery → SQLite → prywatne eksporty i deduplikację przy ponownym odczycie.
+- W testach są wyłącznie syntetyczne firmy i odpowiedzi; nie są one liczone jako rzeczywiste wyniki. Nie dodano żadnych prawdziwych rekordów, stron, cache, baz ani eksportów do repozytorium.
+- Zaktualizowano README: polecenia uruchamiania, limity, licencja, charakter ocen, kody wyjścia, wynik próby 0 i miejsce danych. Składnia wszystkich trzech modułów Python została sprawdzona.
+- Przy przeglądzie poprawiono zachowanie długiego Retry-After dla całego hosta i Crawl-delay przy kolejnych rekordach; ponowne testy przeszły. Cache nie wykonuje zbędnego DNS, gdy ma aktualną odpowiedź.
+- Testy wizualne i produkcyjne połączenia HTTP do stron firm nie były możliwe; odpowiedzi sieciowe w testach są symulowane.
+
+**Następne kroki:**
+
+1. Uruchomić podane w README `discover --region poznan --limit 25` w prywatnym środowisku z działającym DNS/HTTPS. Zachować bazę/cache/eksporty poza repozytorium; uzyskanie 20–30 rzeczywistych rekordów nadal wymaga tego przebiegu.
+2. Ręcznie zweryfikować klasyfikację, źródła, aktualność kontaktów i ewentualne oznaki braku strony lub przestarzałości. Nie traktować próbki OSM jako potwierdzonej listy klientów do kontaktu.
+3. Potwierdzić listę 30 branż i rozważyć osobne źródło dla słabo reprezentowanych rzemieślników i gospodarstw. Nie zwiększać agresywnie zapytań publicznego Overpass.
+4. Po testach zapisać wyłącznie kod/dokumentację i audyt na `feature/demo-generator`, potwierdzić brak zmian `main` i produkcyjnych plików. Nie tworzyć PR, nie publikować demo rzeczywistych firm i nie wysyłać wiadomości.

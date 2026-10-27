@@ -1,0 +1,417 @@
+{
+  "version": 1,
+  "regions": {
+    "poznan": {
+      "label": "Poznań i okolice, promień 30 km",
+      "lat": 52.4064,
+      "lon": 16.9252,
+      "radius_m": 30000,
+      "country": "PL",
+      "voivodeship": "wielkopolskie"
+    }
+  },
+  "rules": {
+    "hydraulik": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "plumber"
+          ]
+        }
+      ]
+    ],
+    "elektryk": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "electrician"
+          ]
+        }
+      ]
+    ],
+    "remonty": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "builder",
+            "renovation"
+          ]
+        }
+      ]
+    ],
+    "malowanie": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "painter"
+          ]
+        }
+      ]
+    ],
+    "plytkarz": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "tiler"
+          ]
+        }
+      ]
+    ],
+    "stolarz": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "carpenter",
+            "joiner"
+          ]
+        }
+      ]
+    ],
+    "dekarz": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "roofer"
+          ]
+        }
+      ]
+    ],
+    "brukarz": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "paver",
+            "stonemason"
+          ]
+        }
+      ]
+    ],
+    "ogrodnik": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "gardener",
+            "gardening"
+          ]
+        }
+      ]
+    ],
+    "sprzatanie": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "cleaning",
+            "building_cleaner"
+          ]
+        }
+      ]
+    ],
+    "klimatyzacja": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "hvac"
+          ]
+        }
+      ]
+    ],
+    "pompy-ciepla": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "heating_engineer"
+          ]
+        }
+      ]
+    ],
+    "mechanik": [
+      [
+        {
+          "key": "shop",
+          "values": [
+            "car_repair"
+          ]
+        }
+      ]
+    ],
+    "wulkanizacja": [
+      [
+        {
+          "key": "shop",
+          "values": [
+            "tyres"
+          ]
+        }
+      ]
+    ],
+    "detailing": [
+      [
+        {
+          "key": "shop",
+          "values": [
+            "car_wash"
+          ]
+        }
+      ],
+      [
+        {
+          "key": "craft",
+          "values": [
+            "car_detailing"
+          ]
+        }
+      ]
+    ],
+    "pomoc-drogowa": [
+      [
+        {
+          "key": "emergency",
+          "values": [
+            "breakdown_service"
+          ]
+        }
+      ],
+      [
+        {
+          "key": "craft",
+          "values": [
+            "towing"
+          ]
+        }
+      ]
+    ],
+    "barber": [
+      [
+        {
+          "key": "shop",
+          "values": [
+            "hairdresser"
+          ]
+        },
+        {
+          "key": "hairdresser",
+          "values": [
+            "barber"
+          ]
+        }
+      ],
+      [
+        {
+          "key": "shop",
+          "values": [
+            "hairdresser"
+          ]
+        },
+        {
+          "key": "male",
+          "values": [
+            "yes"
+          ]
+        },
+        {
+          "key": "female",
+          "values": [
+            "no"
+          ]
+        }
+      ]
+    ],
+    "fryzjer": [
+      [
+        {
+          "key": "shop",
+          "values": [
+            "hairdresser"
+          ]
+        }
+      ]
+    ],
+    "stylistka": [
+      [
+        {
+          "key": "shop",
+          "values": [
+            "beauty"
+          ]
+        },
+        {
+          "key": "beauty",
+          "values": [
+            "nails",
+            "eyelash",
+            "eyebrow",
+            "nail_salon"
+          ]
+        }
+      ]
+    ],
+    "kosmetyczka": [
+      [
+        {
+          "key": "shop",
+          "values": [
+            "beauty"
+          ]
+        }
+      ]
+    ],
+    "masaz": [
+      [
+        {
+          "key": "shop",
+          "values": [
+            "massage"
+          ]
+        }
+      ],
+      [
+        {
+          "key": "healthcare",
+          "values": [
+            "massage"
+          ]
+        }
+      ]
+    ],
+    "trener": [
+      [
+        {
+          "key": "leisure",
+          "values": [
+            "fitness_centre"
+          ]
+        }
+      ]
+    ],
+    "restauracja": [
+      [
+        {
+          "key": "amenity",
+          "values": [
+            "restaurant"
+          ]
+        }
+      ]
+    ],
+    "kawiarnia": [
+      [
+        {
+          "key": "amenity",
+          "values": [
+            "cafe"
+          ]
+        }
+      ]
+    ],
+    "catering": [
+      [
+        {
+          "key": "craft",
+          "values": [
+            "caterer"
+          ]
+        }
+      ],
+      [
+        {
+          "key": "amenity",
+          "values": [
+            "catering"
+          ]
+        }
+      ]
+    ],
+    "gospodarstwo": [
+      [
+        {
+          "key": "shop",
+          "values": [
+            "farm"
+          ]
+        }
+      ]
+    ],
+    "agroturystyka": [
+      [
+        {
+          "key": "tourism",
+          "values": [
+            "farm_stay"
+          ]
+        }
+      ],
+      [
+        {
+          "key": "tourism",
+          "values": [
+            "guest_house"
+          ]
+        },
+        {
+          "key": "guest_house",
+          "values": [
+            "agritourism"
+          ]
+        }
+      ],
+      [
+        {
+          "key": "tourism",
+          "values": [
+            "guest_house"
+          ]
+        },
+        {
+          "key": "name",
+          "contains": "agroturyst"
+        }
+      ]
+    ],
+    "pensjonat": [
+      [
+        {
+          "key": "tourism",
+          "values": [
+            "guest_house",
+            "hotel",
+            "motel"
+          ]
+        }
+      ]
+    ],
+    "apartamenty": [
+      [
+        {
+          "key": "tourism",
+          "values": [
+            "apartment",
+            "chalet"
+          ]
+        }
+      ]
+    ],
+    "kancelaria": [
+      [
+        {
+          "key": "office",
+          "values": [
+            "lawyer"
+          ]
+        }
+      ]
+    ]
+  },
+  "classification_note": "Dopasowanie tagów OSM jest wskazówką, wymaga weryfikacji. Przykładowo car_wash nie potwierdza detailingu, fitness_centre osobistego trenera, a heating_engineer pomp ciepła."
+}

@@ -11,9 +11,15 @@
       "kind": "json-file",
       "mode": "public",
       "enabled": true,
-      "description": "Lokalny plik z legalnie pozyskanymi publicznymi danymi; brak automatycznego pobierania w v0.1"
+      "description": "Lokalny import publicznych danych z udokumentowanym pochodzeniem"
+    },
+    "osm-overpass": {
+      "kind": "overpass",
+      "mode": "public",
+      "enabled": true,
+      "description": "Publiczne dane OpenStreetMap przez ograniczone zapytanie Overpass; ODbL i atrybucja obowiązują."
     }
   },
-  "network_fetch_enabled": false,
+  "network_fetch_enabled": true,
   "paid_apis_enabled": false
 }

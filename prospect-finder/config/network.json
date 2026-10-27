@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "user_agent": "WebForgeProspectFinder/0.2 (+https://github.com/Yormiii/Moja-strona)",
+  "overpass_endpoint": "https://overpass-api.de/api/interpreter",
+  "timeout_seconds": 15,
+  "overpass_timeout_seconds": 35,
+  "max_attempts": 3,
+  "max_requests_per_run": 100,
+  "max_requests_per_day": 200,
+  "overpass_requests_per_day": 10,
+  "min_host_interval_seconds": 2,
+  "overpass_interval_seconds": 10,
+  "max_wait_seconds": 30,
+  "cache_ttl_seconds": 21600,
+  "overpass_cache_ttl_seconds": 86400,
+  "error_cache_ttl_seconds": 300,
+  "max_body_bytes": 1048576,
+  "overpass_max_body_bytes": 8388608,
+  "max_download_bytes_per_day": 52428800,
+  "max_redirects": 3,
+  "protected_hosts": [
+    "webforge.com.pl",
+    "www.webforge.com.pl"
+  ]
+}

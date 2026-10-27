@@ -1,4 +1,4 @@
-"""WebForge Prospect Finder 0.1 — offline, evidence-based, standard library only."""
+"""WebForge Prospect Finder 0.2 — evidence-based, standard library only."""
 from __future__ import annotations
 
 import argparse
@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import re
+import math
 import sqlite3
 import sys
 import unicodedata
@@ -94,7 +95,7 @@ def evidence(value, field, today=None):
 
 
 def validate_record(raw, today=None):
-    keys(raw, ['name', 'industry', 'city', 'voivodeship', 'country', 'address', 'website', 'contacts', 'source', 'last_verified_at', 'activity_signs', 'facts', 'services', 'description', 'fictional'], 'firma')
+    keys(raw, ['name', 'industry', 'city', 'voivodeship', 'country', 'address', 'website', 'contacts', 'source', 'last_verified_at', 'activity_signs', 'facts', 'services', 'description', 'fictional', 'geo', 'source_metadata', 'site_check'], 'firma')
     if type(raw.get('fictional')) is not bool:
         raise ValueError('fictional: wymagane jawne true/false')
     industry = raw.get('industry')
@@ -151,6 +152,23 @@ def validate_record(raw, today=None):
     record['services'] = [text(s, 'service', 120) for s in services]
     if raw.get('description'):
         record['description'] = text(raw['description'], 'description', 2000)
+    if 'geo' in raw:
+        geo=raw['geo'];keys(geo,['lat','lon'],'geo')
+        if any(type(geo.get(k)) not in (int,float) or not math.isfinite(geo[k]) for k in ('lat','lon')) or not -90<=geo['lat']<=90 or not -180<=geo['lon']<=180:raise ValueError('Nieprawidłowe współrzędne')
+        record['geo']=geo
+    if 'source_metadata' in raw:
+        metadata=raw['source_metadata'];keys(metadata,['license','attribution','copyright_url','osm_timestamp','classification_note'],'source_metadata')
+        record['source_metadata']={k:url(v,k) if k=='copyright_url' else text(v,k,1500) for k,v in metadata.items()}
+    if 'site_check' in raw:
+        report=raw['site_check'];keys(report,['checked_at','outcome','http_status','final_url','signals'],'site_check')
+        if report.get('outcome') not in ['no_url','unknown','reachable','http_error','access_limited','robots_disallowed','network_error','budget_exceeded']:raise ValueError('Nieprawidłowy wynik audytu')
+        status=report.get('http_status')
+        if status is not None and (type(status) is not int or not 100<=status<=599):raise ValueError('Nieprawidłowy HTTP status')
+        signals=report.get('signals',[])
+        if not isinstance(signals,list) or len(signals)>20:raise ValueError('Nieprawidłowe sygnały audytu')
+        for signal in signals:
+            keys(signal,['code','detail'],'site_check.signal');text(signal.get('code'),'signal.code',80);text(signal.get('detail'),'signal.detail',600)
+        record['site_check']={'checked_at':date(report.get('checked_at'),'site_check.checked_at',today),'outcome':report['outcome'],'http_status':status,'final_url':url(report['final_url'],'final_url') if report.get('final_url') else None,'signals':signals}
     return record
 
 
@@ -360,9 +378,9 @@ def export_records(records, path, kind='json'):
         content = json.dumps({'version': 1, 'exported_at': dt.datetime.now(dt.timezone.utc).isoformat(), 'workflow': TRANSITIONS, 'records': records}, ensure_ascii=False, indent=2)
     elif kind == 'csv':
         stream = io.StringIO(newline=''); writer = csv.writer(stream)
-        writer.writerow(['id', 'name', 'industry', 'city', 'voivodeship', 'website', 'status', 'score', 'coverage_percent', 'fictional', 'last_verified_at', 'contacts_json', 'sources_json', 'reasons_json'])
+        writer.writerow(['id', 'name', 'industry', 'city', 'voivodeship', 'website', 'status', 'score', 'coverage_percent', 'fictional', 'last_verified_at', 'contacts_json', 'sources_json', 'reasons_json', 'geo_json', 'source_metadata_json', 'site_check_json'])
         for r in records:
-            writer.writerow([csv_safe(v) for v in [r['id'], r['name'], r['industry'], r['city'], r['voivodeship'], r['website'] or '', r['status'], r['assessment']['score'], r['assessment']['coverage_percent'], r['fictional'], r['last_verified_at'], json.dumps(r['contacts'], ensure_ascii=False), json.dumps(r.get('sources', [r['source']]), ensure_ascii=False), json.dumps(r['assessment']['reasons'], ensure_ascii=False)]])
+            writer.writerow([csv_safe(v) for v in [r['id'], r['name'], r['industry'], r['city'], r['voivodeship'], r['website'] or '', r['status'], r['assessment']['score'], r['assessment']['coverage_percent'], r['fictional'], r['last_verified_at'], json.dumps(r['contacts'], ensure_ascii=False), json.dumps(r.get('sources', [r['source']]), ensure_ascii=False), json.dumps(r['assessment']['reasons'], ensure_ascii=False), json.dumps(r.get('geo'),ensure_ascii=False), json.dumps(r.get('source_metadata'),ensure_ascii=False), json.dumps(r.get('site_check'),ensure_ascii=False)]])
         content = '\ufeff' + stream.getvalue()
     else: raise ValueError('Eksport: json/csv')
     # Exclusive creation: never overwrite a database, source file, or prior export.
@@ -372,12 +390,13 @@ def export_records(records, path, kind='json'):
 
 
 def parser():
-    p = argparse.ArgumentParser(description='WebForge Prospect Finder v0.1 — offline, bez wysyłki i publikacji')
+    p = argparse.ArgumentParser(description='WebForge Prospect Finder v0.2 — bez wysyłki i publikacji')
     p.add_argument('--db', default=str(Path.home() / '.local/share/webforge-prospects/prospects.sqlite3'))
     sub = p.add_subparsers(dest='command', required=True)
     def filters(cmd):
         cmd.add_argument('--industry'); cmd.add_argument('--city'); cmd.add_argument('--voivodeship'); cmd.add_argument('--country', default='PL', choices=['PL']); cmd.add_argument('--category', default='wszystkie', choices=['wszystkie', 'modernizacja'])
-    find = sub.add_parser('find'); find.add_argument('--input', required=True); find.add_argument('--source', choices=list(config('sources')['adapters']), default='test-json'); filters(find)
+    find = sub.add_parser('find'); find.add_argument('--input', required=True); find.add_argument('--source', choices=[k for k,v in config('sources')['adapters'].items() if v['kind']=='json-file'], default='test-json'); filters(find)
+    discover=sub.add_parser('discover');discover.add_argument('--region',default='poznan');discover.add_argument('--limit',type=int,default=25);discover.add_argument('--workdir');discover.add_argument('--industry');discover.add_argument('--category',choices=['wszystkie','modernizacja'],default='wszystkie')
     ls = sub.add_parser('list'); filters(ls); ls.add_argument('--status', choices=STATUSES)
     exp = sub.add_parser('export'); filters(exp); exp.add_argument('--status', choices=STATUSES); exp.add_argument('--format', choices=['json', 'csv'], default='json'); exp.add_argument('--output', required=True)
     review = sub.add_parser('review'); review.add_argument('id', type=int); review.add_argument('--status', choices=STATUSES, required=True); review.add_argument('--reason', required=True); review.add_argument('--permission-file')
@@ -392,6 +411,11 @@ def main(argv=None):
         print(json.dumps({'industries': config('industries'), 'locations': config('locations'), 'statuses': STATUSES}, ensure_ascii=False, indent=2)); return 0
     store = Store(args.db)
     try:
+        if args.command=='discover':
+            from live import discover_run
+            report=discover_run(store,region=args.region,limit=args.limit,workdir=args.workdir,industry=args.industry,category=args.category)
+            print(json.dumps(report,ensure_ascii=False,indent=2))
+            return 0 if report['outcome']=='completed' else 2
         filters = {k: getattr(args, k) for k in ('industry', 'city', 'voivodeship', 'country', 'category') if hasattr(args, k)}
         if args.command == 'find':
             source = JsonFileSource(args.input, args.source)
