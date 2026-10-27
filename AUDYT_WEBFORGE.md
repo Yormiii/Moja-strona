@@ -4,7 +4,7 @@
 - Analizowana gałąź: `main`.
 - Commit będący podstawą audytu: `7a53aad3a3252cdeaafd6783eea392644391329e` (`7a53aad`), z 19 lipca 2026 r., komunikat „Add files via upload”.
 - Data analizy i utworzenia dziennika: 27 października 2026 r.
-- Status: audyt i plan; opisane poprawki, generator oraz migracja hostingu nie zostały wdrożone.
+- Status audytu bazowego: audyt i plan; w chwili jego wykonania poprawki, generator oraz migracja hostingu nie były wdrożone. Aktualny stan realizacji opisuje dziennik poniżej.
 - Zakres: odczyt wszystkich plików tekstowych, pełnej struktury repozytorium, konfiguracji formularzy i historii wdrożeń; porównanie demonstracji i sprawdzenie lokalnych odnośników.
 - Nie przeprowadzono testowego wysłania formularzy. Nie potwierdzono bieżącego DNS ani działania domeny w przeglądarce. Analiza kodu nie zastępuje testów wizualnych i testu doręczenia poczty.
 
@@ -18,6 +18,7 @@ Na polecenie właściciela projektu ten plik jest wspólnym dziennikiem pracy na
 4. Nie zmieniać innych plików projektu bez zgody użytkownika. Zgoda na prowadzenie dziennika nie jest zgodą na wdrażanie opisanych rekomendacji.
 5. Nie dodawać do publicznego repozytorium sekretów, prywatnych danych potencjalnych klientów, wewnętrznych notatek handlowych ani danych dostępowych.
 6. Niniejsze zadanie upoważnia do utworzenia i opublikowania wyłącznie `AUDYT_WEBFORGE.md`, najlepiej bezpośrednio na `main`.
+7. Aktualizacja zakresu — Zadanie 1 (2026-10-27): użytkownik zezwolił na dodanie generatora, przykładów, instrukcji i testów oraz aktualizację audytu wyłącznie na `feature/demo-generator`. Nie zmieniać `main`, istniejących stron, formularzy ani plików produkcyjnych. Nie publikować na domenie, nie konfigurować płatnych usług, nie tworzyć PR i nie scalać gałęzi. To nowsze polecenie zastępuje zakres z punktu 6 dla tego zadania.
 
 ## Główna rekomendacja
 
@@ -403,3 +404,88 @@ Kwota 0 zł/mies. dotyczy dodatkowej infrastruktury najprostszej wersji w darmow
 
 **Zakres zmian:** wyłącznie `AUDYT_WEBFORGE.md`; bez zmian HTML, CSS, formularzy, konfiguracji hostingu i domeny. Commit dokumentacji na `main` może uruchomić istniejący automatyczny proces GitHub Pages; nie jest to wdrożenie proponowanego generatora ani migracja.
 
+
+### 2026-10-27 — Zadanie 1: pierwsza wersja generatora demonstracji
+
+**Zgoda i zakres:** użytkownik zlecił generator, fikcyjny przykład, instrukcję i testy oraz aktualizację dziennika na osobnej gałęzi `feature/demo-generator`. Zabronił zmian `main`, istniejących stron, formularzy i innych plików produkcyjnych, wdrażania na domenę, płatnych usług, tworzenia PR i scalania.
+
+**Stan początkowy i odczyt audytu:**
+
+- Najpierw przeczytano lokalny audyt, następnie jego aktualną kopię z GitHub.
+- Na GitHubie audyt jest już obecny: aktualny snapshot `main` to `8f07e41bdfad0d491b4d617c8a23a25a9465bb72`. Historyczny wpis o wcześniejszym nieudanym zapisie pozostawiono jako historię; opisuje poprzednią próbę, nie aktualny brak dokumentu.
+- Odczytano wszystkie 17 plików tego snapshotu przez integrację GitHub. Lokalną bazę odtworzono z oryginalnych obiektów, sprawdzając SHA każdego pliku, drzewa i podpisanego commita. To płytka lokalna kopia Git, z tym samym commitem bazowym co GitHub.
+- Utworzono lokalną gałąź `feature/demo-generator`; nie tworzono ani nie zmieniano lokalnej gałęzi `main`.
+
+**Wykonane działania:**
+
+- Dodano wyłącznie nowy katalog `demo-generator/` i zaktualizowano niniejszy audyt.
+- `templates/demo.html`: wspólny układ i CSS bazujące na ośmiu istniejących demonstracjach; źródła produkcyjne pozostały nienaruszone.
+- `data/industries.json`: etykiety, kolory i CTA ośmiu branż: mechanik, barber, stylistka, elektryk, hydraulik, kancelaria, restauracja i trener. Każdy profil wskazuje plik źródłowy.
+- `generate.mjs`: generator Node.js bez zależności zewnętrznych. Czyta JSON z nazwą, branżą, miastem, usługami, opisem, kolorami i kontaktem; tworzy samodzielny HTML w `demo-generator/generated/<slug>/index.html`.
+- Obsłużono 1–12 usług jako tekst lub obiekty z opisami, dane telefonu/e-maila/WWW/adresu, opcjonalne kolory branżowe, jawny lub automatyczny slug z obsługą polskich znaków i stabilnym skrótem.
+- Dodano walidację wymaganych i nieznanych pól, kolorów, kontaktów i bezpiecznych adresów HTTP/HTTPS; kodowanie treści HTML; ochronę przed przejściem poza katalog wyników i symlinkami. Nadpisanie wymaga jawnego `--force`.
+- Gotowe demo ma widoczne oznaczenie propozycji WebForge, `noindex, nofollow`, bezwzględne odnośniki do WebForge i prawidłowe kotwice sekcji. Nie zawiera skryptów, formularzy, systemu rezerwacji ani fikcyjnych opinii czy kwalifikacji.
+- `examples/firma-testowa.json`: fikcyjna firma „Serwis Orbita TEST — firma fikcyjna”, Łódź, trzy usługi, własne kolory i wyłącznie fikcyjne dane kontaktowe (domeny `.invalid`, zerowy telefon).
+- Wygenerowano i dołączono `generated/serwis-orbita-test/index.html`.
+- Dodano `README.md` z uruchamianiem, schematem danych, listą branż, instrukcją podglądu, zakresem i ograniczeniami, oraz `package.json` ze skryptami bez instalowania pakietów.
+- Dodano 13 testów opartych na wbudowanym `node:test`.
+
+**Uruchamianie z katalogu głównego repozytorium:**
+
+```sh
+node demo-generator/generate.mjs demo-generator/examples/firma-testowa.json --force
+node --test demo-generator/test/*.test.mjs
+```
+
+Do szczegółowego raportu wszystkich przypadków można również uruchomić `node demo-generator/test/generator.test.mjs`. W tym środowisku tryb `--test` raportował pojedynczy plik testowy jako zbiorczy wynik; bezpośrednie uruchomienie potwierdziło wszystkie 13 przypadków.
+
+**Wyniki weryfikacji:**
+
+- Node.js 24.19.0; deklarowane minimum projektu: Node.js 20. Nie wykonywano osobnego przebiegu na Node.js 20.
+- **13/13 testów przeszło, 0 błędów.** Sprawdzono: zgodność ośmiu profili z demonstracjami źródłowymi, personalizację, kontakty, noindex i oznaczenie demo, kotwice i niezależność od lokalnych zasobów, brak formularzy/skryptów, XSS i jednokrotne podstawianie znaczników, błędne dane, protokoły URL, polskie znaki i rozróżnianie slugów, zapis i jawne odświeżanie, brak plików przy błędzie, symlinki, błędy CLI, generowanie z innego katalogu i odtwarzalność przykładu.
+- `npm --prefix demo-generator test` oraz kontrola składni `node --check demo-generator/generate.mjs` zakończyły się powodzeniem.
+- Wygenerowany HTML jest odtwarzalny z JSON; test porównuje go z dołączonym wynikiem.
+- Kontrola Git potwierdziła brak zmian w istniejących plikach produkcyjnych. Zmiany obejmują tylko `AUDYT_WEBFORGE.md` i osiem nowych plików w `demo-generator/`.
+- Próba podglądu mobilnego i desktopowego przez Playwright nie zakończyła się renderowaniem: brak przeglądarki w cache, a systemowy Chromium przerwał start z `setsockopt: Operation not permitted` / SIGTRAP. Nie potwierdzono wizualnie wyglądu ani braku poziomego przewijania. Nie przedstawiać tej próby jako zaliczonego testu wizualnego.
+
+**GitHub, commit i ograniczenia:**
+
+- Próba utworzenia zdalnej gałęzi `feature/demo-generator` z aktualnego `main` została odrzucona: `403 Resource not accessible by integration`. Zdalna gałąź nie została utworzona.
+- Zwykłe klonowanie Git również nie zadziałało: brak połączenia z proxy na porcie 8080. Nie obchodzono proxy i nie zmieniano konfiguracji poświadczeń.
+- Przygotowano lokalny commit na `feature/demo-generator` oraz eksport zmian jako ZIP i patch do zastosowania po przywróceniu zapisu. SHA lokalnego commita odczytać z `git log -1`; nie wpisuje się własnego SHA do treści tego samego commita.
+- Nie wysłano zmian do GitHub, nie utworzono PR i nie scalono gałęzi. Brak działającego linku do zdalnej gałęzi.
+- Nie uruchomiono wdrożenia, nie modyfikowano domeny, DNS, hostingu, formularzy, `CNAME`, sitemap ani produkcyjnych demonstracji. Nie skonfigurowano płatnych usług. Dodatkowy koszt wykonania generatora w tej wersji: brak opłat za API lub infrastrukturę.
+
+**Stan wcześniejszych rekomendacji:**
+
+- P-03: wspólny szablon i dane wyodrębniono dla nowego generatora; istniejące osiem stron zachowano bez refaktoryzacji.
+- P-08: nowe demo używa bezwzględnych odnośników do WebForge.
+- P-09: dodano oznaczenie i noindex; dane przykładu fikcyjne. Noindex nadal nie zapewnia prywatności.
+- P-11: generator v0.1 działa lokalnie; panel, AI i automatyczne wdrożenie nadal nie są zaimplementowane.
+- P-01, P-02 oraz pozostałe niezweryfikowane kwestie produkcyjne pozostają otwarte; nie poprawiano ich w tym zadaniu.
+
+**Następne kroki:**
+
+1. Przywrócić integracji GitHub prawo zapisu i utworzyć zdalne `feature/demo-generator`, publikując wyłącznie przygotowane zmiany (bez PR i bez modyfikacji `main`). Przed publikacją sprawdzić aktualny stan gałęzi i ewentualne równoległe zmiany; nie wymuszać nadpisania.
+2. Sprawdzić wygenerowany przykład wizualnie w działającej przeglądarce na telefonie i komputerze oraz uzgodnić wygląd i kontrast.
+3. W osobnym zadaniu rozważyć obsługę paczki wielu firm, statusów aktywne/wyłączone, zdjęć i wygodnego wprowadzania danych.
+4. Hosting na osobnej subdomenie i automatyczne wdrożenie pozostają osobnym etapem wymagającym zgody.
+5. Po następnym zadaniu ponownie uzupełnić dziennik; historyczne analizy zachować.
+
+### 2026-10-27 — ponowienie publikacji po aktualizacji uprawnień GitHub
+
+**Polecenie:** opublikować gotowy generator i audyt na `feature/demo-generator`, bez zmian `main` i bez Pull Requesta.
+
+**Wykonane działania:**
+
+- Odczytano dziennik, stan lokalnej gałęzi i commit generatora `0d154e03f10dcb0d8def6ad88aa0b54f5dbc996d`.
+- Sprawdzono aktualny `main`: nadal `8f07e41bdfad0d491b4d617c8a23a25a9465bb72`. Nie było równoległych zmian wymagających scalenia.
+- Sprawdzono listę gałęzi: `feature/demo-generator` jeszcze nie istniała.
+- Po aktualizacji uprawnień udało się utworzyć zdalną gałąź `feature/demo-generator` z aktualnego `main`. Wcześniejszy błąd 403 dotyczący tej operacji nie wystąpił.
+- Przygotowano zapis wszystkich ośmiu plików `demo-generator/` oraz niniejszego audytu przez GitHub API. Kod generatora i jego przykład nie wymagają zmian; wyniki wcześniejszych 13/13 testów pozostają aktualne.
+
+**Stan tego wpisu:** gałąź istnieje, przygotowano commit z plikami; wynik zapisu i porównania zawartości będzie odnotowany w kolejnym wpisie po odczycie danych z GitHub.
+
+**Problemy:** narzędzie odczytu nie przyjęło zakodowanego ukośnika w adresie pojedynczej gałęzi; jej nieistnienie potwierdzono przez listę gałęzi. Nie było to ograniczenie uprawnień zapisu.
+
+**Następne kroki:** opublikować przygotowaną zawartość na nowej gałęzi, porównać wszystkie pliki z wersją lokalną, sprawdzić brak zmian produkcyjnych i niezmieniony SHA `main`, następnie dopisać wynik weryfikacji. Nie tworzyć PR, nie scalać i nie wdrażać na domenę.

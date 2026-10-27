@@ -1,0 +1,19 @@
+{
+  "slug": "serwis-orbita-test",
+  "nazwa": "Serwis Orbita TEST — firma fikcyjna",
+  "branza": "mechanik",
+  "miasto": "Łódź",
+  "opis": "Fikcyjny warsztat używany wyłącznie do testowania generatora WebForge. Przykładowa oferta serwisowa dla kierowców z Łodzi i okolic.",
+  "uslugi": [
+    { "nazwa": "Diagnostyka komputerowa", "opis": "Przykładowy opis diagnostyki pojazdów." },
+    { "nazwa": "Wymiana oleju i filtrów", "opis": "Demonstracyjny zakres obsługi okresowej." },
+    { "nazwa": "Hamulce i zawieszenie", "opis": "Przykładowa prezentacja oferty warsztatu." }
+  ],
+  "kolory": { "akcent": "#52d6b6", "tlo": "#101c25" },
+  "kontakt": {
+    "telefon": "+48 000 000 000",
+    "email": "kontakt@serwis-orbita.example.invalid",
+    "www": "https://serwis-orbita.example.invalid/",
+    "adres": "Fikcyjna 0, Łódź — adres demonstracyjny"
+  }
+}

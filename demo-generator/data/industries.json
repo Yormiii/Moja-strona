@@ -1,0 +1,58 @@
+{
+  "barber": {
+    "etykieta": "Barbershop",
+    "cta": "Zarezerwuj termin",
+    "akcent": "#d6a85f",
+    "tlo": "#17120e",
+    "zrodlo": "demo-barber.html"
+  },
+  "elektryk": {
+    "etykieta": "Elektryk",
+    "cta": "Poproś o wycenę",
+    "akcent": "#ffd447",
+    "tlo": "#1c1a0c",
+    "zrodlo": "demo-elektryk.html"
+  },
+  "hydraulik": {
+    "etykieta": "Usługi hydrauliczne",
+    "cta": "Zadzwoń po pomoc",
+    "akcent": "#32a7ff",
+    "tlo": "#0b1a27",
+    "zrodlo": "demo-hydraulik.html"
+  },
+  "kancelaria": {
+    "etykieta": "Kancelaria prawna",
+    "cta": "Umów konsultację",
+    "akcent": "#bca36b",
+    "tlo": "#151613",
+    "zrodlo": "demo-kancelaria.html"
+  },
+  "mechanik": {
+    "etykieta": "Warsztat samochodowy",
+    "cta": "Umów wizytę",
+    "akcent": "#ff5a36",
+    "tlo": "#11151b",
+    "zrodlo": "demo-mechanik.html"
+  },
+  "restauracja": {
+    "etykieta": "Restauracja",
+    "cta": "Zarezerwuj stolik",
+    "akcent": "#80c46a",
+    "tlo": "#122015",
+    "zrodlo": "demo-restauracja.html"
+  },
+  "stylistka": {
+    "etykieta": "Beauty studio",
+    "cta": "Umów wizytę",
+    "akcent": "#e98eb7",
+    "tlo": "#28151f",
+    "zrodlo": "demo-stylistka.html"
+  },
+  "trener": {
+    "etykieta": "Trener personalny",
+    "cta": "Umów konsultację",
+    "akcent": "#7de2d1",
+    "tlo": "#0d2020",
+    "zrodlo": "demo-trener.html"
+  }
+}
