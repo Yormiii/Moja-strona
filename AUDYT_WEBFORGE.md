@@ -751,3 +751,16 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 - Nie wysłano wiadomości, nie publikowano demonstracji ani danych rzeczywistych firm, nie zmieniono produkcyjnego WebForge/main i nie tworzono PR.
 
 **Następne kroki:** zapisać kod i audyt na feature, zweryfikować opublikowane pliki, następnie wykonać instrukcję w README_ACTIONS: prywatne repo sterujące → szablon na jego domyślnej gałęzi → sekret → Actions / Run workflow (poznan, all, 25). Dla kolejnych przebiegów wybrać tryb private-repository, aby zachować SQLite i liczniki. Harmonogram włączyć dopiero w osobnym zadaniu.
+
+### 2026-10-27 — publikacja v0.3 potwierdzona
+
+- Zapisano workflow i moduły w commicie [ee9a203](https://github.com/Yormiii/Moja-strona/commit/ee9a203327b2116a9d61cd293c81ba580397295b) na [feature/demo-generator](https://github.com/Yormiii/Moja-strona/tree/feature/demo-generator).
+- Potwierdzono odczytem z GitHub pełną treść wszystkich 10 zmienionych/dodanych plików, w tym `.github/workflows/prospect-finder.yml`. Integracja zezwoliła na zapis pliku workflow; nie było potrzeby pomijania go.
+- Sprawdzono drzewo: 52 pozostałe pliki zachowały SHA, w tym produkcyjna strona i cały generator demonstracji. W repozytorium nie ma bazy, cache, archiwum GPG ani wyników rzeczywistych firm.
+- Lista gałęzi potwierdziła niezmieniony main `8f07e41bdfad0d491b4d617c8a23a25a9465bb72`.
+- Odczyt GitHub Actions dla tego commita i zdarzenia workflow_dispatch zwrócił **0 przebiegów**. To potwierdza brak uruchomienia, nie znalezienie 0 firm w Actions. Lokalna próba pozostaje osobno opisana: 0 firm przez blokadę DNS/egress.
+- Testy lokalne: 93/93, poprawne parsowanie workflow JSON/YAML i zgodne kopie. Testy szyfrowania oraz dwóch przebiegów z trwałym stanem były syntetyczne, bez rzeczywistych operacji prywatnego API.
+- Dokładna instrukcja: [README_ACTIONS.md](https://github.com/Yormiii/Moja-strona/blob/feature/demo-generator/prospect-finder/README_ACTIONS.md). Szablon do nowego prywatnego repozytorium: [prospect-finder.yml](https://github.com/Yormiii/Moja-strona/blob/feature/demo-generator/prospect-finder/workflow/prospect-finder.yml).
+- Nie zmieniano main/produkcji, nie tworzono PR, nie włączono cyklicznych zapytań ani płatnego przekroczenia limitów, nie wysłano wiadomości i nie opublikowano demo.
+
+**Wymagane działanie użytkownika:** utworzyć prywatne repozytorium sterujące, skopiować szablon do jego domyślnej gałęzi, dodać PROSPECT_DATA_KEY i kliknąć Run workflow (poznan/all/25). Dla trwałej SQLite skonfigurować prywatny magazyn i token oraz wybrać private-repository. Dopiero wynik rzeczywistego runu pozwoli potwierdzić liczbę 20–30 firm.
