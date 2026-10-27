@@ -489,3 +489,21 @@ Do szczegółowego raportu wszystkich przypadków można również uruchomić `n
 **Problemy:** narzędzie odczytu nie przyjęło zakodowanego ukośnika w adresie pojedynczej gałęzi; jej nieistnienie potwierdzono przez listę gałęzi. Nie było to ograniczenie uprawnień zapisu.
 
 **Następne kroki:** opublikować przygotowaną zawartość na nowej gałęzi, porównać wszystkie pliki z wersją lokalną, sprawdzić brak zmian produkcyjnych i niezmieniony SHA `main`, następnie dopisać wynik weryfikacji. Nie tworzyć PR, nie scalać i nie wdrażać na domenę.
+
+### 2026-10-27 — publikacja generatora potwierdzona
+
+**Wynik:** publikacja na GitHub zakończyła się powodzeniem. Gałąź: [feature/demo-generator](https://github.com/Yormiii/Moja-strona/tree/feature/demo-generator).
+
+**Wykonane działania i weryfikacja:**
+
+- Opublikowano komplet generatora oraz audyt w commicie [310e72f](https://github.com/Yormiii/Moja-strona/commit/310e72f8c7afe91effd0d22653587be62ef6410b).
+- Ponownie odczytano z GitHub wszystkie 9 zmienionych/dodanych plików: ich pełna treść była identyczna z przygotowaną wersją lokalną.
+- Porównanie gałęzi z bazowym `main` wykazało dokładnie osiem nowych plików `demo-generator/` i modyfikację `AUDYT_WEBFORGE.md`; żadnych zmian w plikach produkcyjnych.
+- Odczyt listy gałęzi potwierdził, że `feature/demo-generator` wskazuje opublikowany commit, a `main` nadal wskazuje `8f07e41bdfad0d491b4d617c8a23a25a9465bb72`.
+- Niniejszy wynik weryfikacji zapisano jako osobną aktualizację dziennika na tej samej gałęzi.
+- Nie zmieniano kodu po wcześniejszym pomyślnym przebiegu 13/13 testów; nie powtarzano testów bez zmiany implementacji.
+- Nie tworzono Pull Requesta, nie scalano gałęzi i nie publikowano generatora na domenie. Nie konfigurowano płatnych usług.
+
+**Problemy:** wcześniejsza blokada 403 zapisu została rozwiązana przez aktualizację uprawnień. Ograniczenie podglądu wizualnego z poprzedniego zadania pozostaje otwarte.
+
+**Następne kroki:** użytkownik może przeglądać i pobrać kod z gałęzi; następnie sprawdzić lokalnie wygląd demonstracji w przeglądarce i zlecić kolejny etap. PR, scalanie, wdrożenie i zmiany produkcyjne wymagają osobnego polecenia.
