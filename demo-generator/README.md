@@ -112,6 +112,8 @@ Przykład jest w [examples/firma-testowa.json](examples/firma-testowa.json). Fir
 | `kolory` | Opcjonalny obiekt; `akcent` i `tlo` w formacie `#RRGGBB`; brakujące kolory pochodzą z branży |
 | `kontakt` | Wymagany obiekt z co najmniej jednym z pól `telefon`, `email`, `www`; `adres` opcjonalny |
 | `slug` | Opcjonalny, maks. 100 znaków; małe litery a–z, cyfry i pojedyncze łączniki, bez ścieżek |
+| `etykieta_branzy` | Opcjonalny tekst (maks. 120), np. „Agroturystyka”; pozwala adapterowi Prospect Finder użyć istniejącego układu z właściwą nazwą branży |
+| `cta` | Opcjonalny tekst przycisku (maks. 120); bez HTML. Bez tych dwóch pól wynik pozostaje zgodny z v0.2 |
 
 Numer telefonu: 7–15 cyfr, opcjonalny początkowy `+`, spacje, nawiasy i łączniki. Link strony: tylko `https://` lub `http://`, bez loginu i hasła. Każde pole kontaktu ma limit 300 znaków. Nieznane pola są odrzucane, żeby literówki nie powodowały cichego pominięcia danych.
 

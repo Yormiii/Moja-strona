@@ -33,7 +33,7 @@ export function escapeHtml(value) {
 
 export function validateCompany(input) {
   record(input, 'firma');
-  knownKeys(input, ['nazwa', 'branza', 'miasto', 'uslugi', 'opis', 'kolory', 'kontakt', 'slug'], 'firma');
+  knownKeys(input, ['nazwa', 'branza', 'miasto', 'uslugi', 'opis', 'kolory', 'kontakt', 'slug', 'etykieta_branzy', 'cta'], 'firma');
   const nazwa = text(input.nazwa, 'nazwa', 160);
   const branza = text(input.branza, 'branza', 40);
   if (!Object.hasOwn(industries, branza)) fail(`branza: wybierz ${Object.keys(industries).join(', ')}`);
@@ -73,7 +73,9 @@ export function validateCompany(input) {
   const base = `${nazwa}-${miasto}`.toLowerCase().replace(/ł/g, 'l').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60).replace(/-$/, '') || 'firma';
   const slug = input.slug ?? `${base}-${id}`;
   if (typeof slug !== 'string' || !SLUG.test(slug) || slug.length > 100) fail('slug: 1–100 znaków a-z, 0-9 i pojedyncze łączniki');
-  return { nazwa, branza, miasto, opis, uslugi, kolory, kontakt, slug };
+  const etykieta_branzy = input.etykieta_branzy === undefined ? preset.etykieta : text(input.etykieta_branzy, 'etykieta_branzy', 120);
+  const cta = input.cta === undefined ? preset.cta : text(input.cta, 'cta', 120);
+  return { nazwa, branza, miasto, opis, uslugi, kolory, kontakt, slug, etykieta_branzy, cta };
 }
 
 export function renderCompany(input) {
@@ -91,8 +93,8 @@ export function renderCompany(input) {
   const values = {
     nazwa: esc(company.nazwa), miasto: esc(company.miasto), opis: esc(company.opis),
     opisMeta: esc(company.opis.replace(/\s+/g, ' ').slice(0, 160)),
-    branza: esc(preset.etykieta), naglowek: esc(`${company.nazwa} — ${company.miasto}`),
-    cta: esc(preset.cta), akcent: company.kolory.akcent, tlo: company.kolory.tlo,
+    branza: esc(company.etykieta_branzy), naglowek: esc(`${company.nazwa} — ${company.miasto}`),
+    cta: esc(company.cta), akcent: company.kolory.akcent, tlo: company.kolory.tlo,
     uslugi: services, kontakt: links.join('\n'), szablon: preset.szablon
   };
   // The variant comes only from trusted configuration, never from a JSON path.

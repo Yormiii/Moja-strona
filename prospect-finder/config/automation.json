@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "workers_enabled": false,
+  "steps": [
+    {
+      "event": "prospect.accepted",
+      "future_action": "prepare_demo_draft",
+      "enabled": false
+    },
+    {
+      "event": "demo.approved",
+      "future_action": "publish_demo",
+      "enabled": false
+    },
+    {
+      "event": "contact.approved",
+      "future_action": "personalized_message",
+      "enabled": false
+    },
+    {
+      "event": "reply.received",
+      "future_action": "classify_reply",
+      "enabled": false
+    },
+    {
+      "event": "notification.requested",
+      "future_action": "telegram",
+      "enabled": false
+    },
+    {
+      "event": "quote.requested",
+      "future_action": "prepare_quote",
+      "enabled": false
+    },
+    {
+      "event": "final_site.approved",
+      "future_action": "build_final_site",
+      "enabled": false
+    }
+  ],
+  "send_messages": false,
+  "publish_real_demos": false,
+  "paid_apis": false,
+  "final_site_requires_approval": true
+}

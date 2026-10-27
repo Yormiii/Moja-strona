@@ -1,0 +1,508 @@
+{
+  "version": 1,
+  "exported_at": "2026-10-27T00:00:00+00:00",
+  "workflow": {
+    "znaleziony": [
+      "do_weryfikacji",
+      "odrzucony"
+    ],
+    "do_weryfikacji": [
+      "zaakceptowany",
+      "odrzucony"
+    ],
+    "zaakceptowany": [
+      "demo_gotowe",
+      "kontakt_dozwolony",
+      "odrzucony"
+    ],
+    "demo_gotowe": [
+      "kontakt_dozwolony",
+      "odrzucony"
+    ],
+    "kontakt_dozwolony": [
+      "kontaktowany",
+      "odrzucony"
+    ],
+    "kontaktowany": [
+      "zainteresowany",
+      "odrzucony"
+    ],
+    "zainteresowany": [
+      "klient",
+      "odrzucony"
+    ],
+    "odrzucony": [
+      "do_weryfikacji"
+    ],
+    "klient": []
+  },
+  "records": [
+    {
+      "name": "Warsztat Model — FIRMA FIKCYJNA TEST",
+      "industry": "mechanik",
+      "city": "Łódź",
+      "voivodeship": "lodzkie",
+      "country": "PL",
+      "address": "Adres fikcyjny 0",
+      "website": null,
+      "source": {
+        "provider": "fixture-only",
+        "id": "test-a",
+        "url": "https://zrodlo-test.example.invalid/test-a"
+      },
+      "last_verified_at": "2026-10-27",
+      "fictional": true,
+      "contacts": [
+        {
+          "kind": "email",
+          "value": "test-a@example.invalid",
+          "source_url": "https://zrodlo-test.example.invalid/test-a",
+          "verified_at": "2026-10-27"
+        }
+      ],
+      "activity_signs": [
+        {
+          "description": "FIKCYJNY sygnał: testowy wpis o otwarciu",
+          "source_url": "https://zrodlo-test.example.invalid/test-a",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "facts": {
+        "website_status": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: w scenariuszu potwierdzono brak strony",
+          "value": "missing"
+        },
+        "sales_potential": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: w scenariuszu potwierdzono potrzebę strony",
+          "value": "high"
+        }
+      },
+      "services": [
+        "Wyłącznie przykładowa usługa testowa"
+      ],
+      "description": "Fikcyjny opis do testowania integracji. Nie przedstawia oferty rzeczywistej firmy.",
+      "sources": [
+        {
+          "provider": "fixture-only",
+          "id": "test-a",
+          "url": "https://zrodlo-test.example.invalid/test-a"
+        }
+      ],
+      "id": 1,
+      "status": "zaakceptowany",
+      "contact_permission": null,
+      "assessment": {
+        "score": 100,
+        "coverage_percent": 100,
+        "activity_state": "oznaki_aktywnosci",
+        "reasons": [
+          {
+            "criterion": "missing_website",
+            "points": 50,
+            "reason": "Potwierdzony brak strony",
+            "evidence": [
+              {
+                "source_url": "https://zrodlo-test.example.invalid/ocena",
+                "verified_at": "2026-10-27",
+                "note": "FIKCYJNY DOWÓD TESTOWY: w scenariuszu potwierdzono brak strony",
+                "value": "missing"
+              }
+            ]
+          },
+          {
+            "criterion": "activity",
+            "points": 20,
+            "reason": "Aktualne oznaki działalności",
+            "evidence": [
+              {
+                "description": "FIKCYJNY sygnał: testowy wpis o otwarciu",
+                "source_url": "https://zrodlo-test.example.invalid/test-a",
+                "observed_at": "2026-10-27"
+              }
+            ]
+          },
+          {
+            "criterion": "sales_potential",
+            "points": 30,
+            "reason": "Udokumentowana ocena potencjału",
+            "evidence": [
+              {
+                "source_url": "https://zrodlo-test.example.invalid/ocena",
+                "verified_at": "2026-10-27",
+                "note": "FIKCYJNY DOWÓD TESTOWY: w scenariuszu potwierdzono potrzebę strony",
+                "value": "high"
+              }
+            ]
+          }
+        ],
+        "scored_at": "2026-10-27",
+        "scoring_version": 1
+      }
+    },
+    {
+      "name": "Pensjonat Model — FIRMA FIKCYJNA TEST",
+      "industry": "pensjonat",
+      "city": "Gdańsk",
+      "voivodeship": "pomorskie",
+      "country": "PL",
+      "address": "Adres fikcyjny 0",
+      "website": "https://pensjonat-test.example.invalid/",
+      "source": {
+        "provider": "fixture-only",
+        "id": "test-b",
+        "url": "https://zrodlo-test.example.invalid/test-b"
+      },
+      "last_verified_at": "2026-10-27",
+      "fictional": true,
+      "contacts": [
+        {
+          "kind": "email",
+          "value": "test-b@example.invalid",
+          "source_url": "https://zrodlo-test.example.invalid/test-b",
+          "verified_at": "2026-10-27"
+        }
+      ],
+      "activity_signs": [],
+      "facts": {
+        "website_status": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: w scenariuszu strona istnieje",
+          "value": "present"
+        },
+        "outdated": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo przestarzały układ",
+          "value": true
+        },
+        "mobile_issues": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo nieczytelny układ na telefonie",
+          "value": true
+        },
+        "unclear_offer": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo oferta czytelna",
+          "value": false
+        },
+        "technical_issues": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo niedziałające linki",
+          "value": true
+        },
+        "sales_potential": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowa ocena oferty",
+          "value": "medium"
+        }
+      },
+      "services": [
+        "Wyłącznie przykładowa usługa testowa"
+      ],
+      "description": "Fikcyjny opis do testowania integracji. Nie przedstawia oferty rzeczywistej firmy.",
+      "sources": [
+        {
+          "provider": "fixture-only",
+          "id": "test-b",
+          "url": "https://zrodlo-test.example.invalid/test-b"
+        }
+      ],
+      "id": 2,
+      "status": "do_weryfikacji",
+      "contact_permission": null,
+      "assessment": {
+        "score": 60,
+        "coverage_percent": 80,
+        "activity_state": "nieustalone",
+        "reasons": [
+          {
+            "criterion": "outdated",
+            "points": 15,
+            "reason": "Potwierdzony problem",
+            "evidence": [
+              {
+                "source_url": "https://zrodlo-test.example.invalid/ocena",
+                "verified_at": "2026-10-27",
+                "note": "FIKCYJNY DOWÓD TESTOWY: testowo przestarzały układ",
+                "value": true
+              }
+            ]
+          },
+          {
+            "criterion": "mobile_issues",
+            "points": 15,
+            "reason": "Potwierdzony problem",
+            "evidence": [
+              {
+                "source_url": "https://zrodlo-test.example.invalid/ocena",
+                "verified_at": "2026-10-27",
+                "note": "FIKCYJNY DOWÓD TESTOWY: testowo nieczytelny układ na telefonie",
+                "value": true
+              }
+            ]
+          },
+          {
+            "criterion": "unclear_offer",
+            "points": 0,
+            "reason": "Nie stwierdzono problemu",
+            "evidence": [
+              {
+                "source_url": "https://zrodlo-test.example.invalid/ocena",
+                "verified_at": "2026-10-27",
+                "note": "FIKCYJNY DOWÓD TESTOWY: testowo oferta czytelna",
+                "value": false
+              }
+            ]
+          },
+          {
+            "criterion": "technical_issues",
+            "points": 10,
+            "reason": "Potwierdzony problem",
+            "evidence": [
+              {
+                "source_url": "https://zrodlo-test.example.invalid/ocena",
+                "verified_at": "2026-10-27",
+                "note": "FIKCYJNY DOWÓD TESTOWY: testowo niedziałające linki",
+                "value": true
+              }
+            ]
+          },
+          {
+            "criterion": "activity",
+            "points": 0,
+            "reason": "Brak aktualnych oznak w danych — nie oznacza nieaktywności",
+            "evidence": []
+          },
+          {
+            "criterion": "sales_potential",
+            "points": 20,
+            "reason": "Udokumentowana ocena potencjału",
+            "evidence": [
+              {
+                "source_url": "https://zrodlo-test.example.invalid/ocena",
+                "verified_at": "2026-10-27",
+                "note": "FIKCYJNY DOWÓD TESTOWY: testowa ocena oferty",
+                "value": "medium"
+              }
+            ]
+          }
+        ],
+        "scored_at": "2026-10-27",
+        "scoring_version": 1
+      }
+    },
+    {
+      "name": "Gospodarstwo Model — FIRMA FIKCYJNA TEST",
+      "industry": "gospodarstwo",
+      "city": "Lublin",
+      "voivodeship": "lubelskie",
+      "country": "PL",
+      "address": "Adres fikcyjny 0",
+      "website": null,
+      "source": {
+        "provider": "fixture-only",
+        "id": "test-c",
+        "url": "https://zrodlo-test.example.invalid/test-c"
+      },
+      "last_verified_at": "2026-10-27",
+      "fictional": true,
+      "contacts": [],
+      "activity_signs": [],
+      "facts": {},
+      "services": [
+        "Wyłącznie przykładowa usługa testowa"
+      ],
+      "description": "Fikcyjny opis do testowania integracji. Nie przedstawia oferty rzeczywistej firmy.",
+      "sources": [
+        {
+          "provider": "fixture-only",
+          "id": "test-c",
+          "url": "https://zrodlo-test.example.invalid/test-c"
+        }
+      ],
+      "id": 3,
+      "status": "znaleziony",
+      "contact_permission": null,
+      "assessment": {
+        "score": 0,
+        "coverage_percent": 0,
+        "activity_state": "nieustalone",
+        "reasons": [
+          {
+            "criterion": "website",
+            "points": 0,
+            "reason": "Status strony nieustalony lub nieaktualny. Brak adresu nie oznacza braku strony.",
+            "evidence": []
+          },
+          {
+            "criterion": "activity",
+            "points": 0,
+            "reason": "Brak aktualnych oznak w danych — nie oznacza nieaktywności",
+            "evidence": []
+          },
+          {
+            "criterion": "sales_potential",
+            "points": 0,
+            "reason": "Potencjał nieustalony — bez punktów",
+            "evidence": []
+          }
+        ],
+        "scored_at": "2026-10-27",
+        "scoring_version": 1
+      }
+    },
+    {
+      "name": "Salon Model — FIRMA FIKCYJNA TEST",
+      "industry": "kosmetyczka",
+      "city": "Poznań",
+      "voivodeship": "wielkopolskie",
+      "country": "PL",
+      "address": "Adres fikcyjny 0",
+      "website": "https://salon-test.example.invalid/",
+      "source": {
+        "provider": "fixture-only",
+        "id": "test-d",
+        "url": "https://zrodlo-test.example.invalid/test-d"
+      },
+      "last_verified_at": "2026-10-27",
+      "fictional": true,
+      "contacts": [
+        {
+          "kind": "email",
+          "value": "test-d@example.invalid",
+          "source_url": "https://zrodlo-test.example.invalid/test-d",
+          "verified_at": "2026-10-27"
+        }
+      ],
+      "activity_signs": [],
+      "facts": {
+        "website_status": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowa strona",
+          "value": "present"
+        },
+        "outdated": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo brak problemu",
+          "value": false
+        },
+        "mobile_issues": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo brak problemu",
+          "value": false
+        },
+        "unclear_offer": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo brak problemu",
+          "value": false
+        },
+        "technical_issues": {
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo brak problemu",
+          "value": false
+        }
+      },
+      "services": [
+        "Wyłącznie przykładowa usługa testowa"
+      ],
+      "description": "Fikcyjny opis do testowania integracji. Nie przedstawia oferty rzeczywistej firmy.",
+      "sources": [
+        {
+          "provider": "fixture-only",
+          "id": "test-d",
+          "url": "https://zrodlo-test.example.invalid/test-d"
+        }
+      ],
+      "id": 4,
+      "status": "znaleziony",
+      "contact_permission": null,
+      "assessment": {
+        "score": 0,
+        "coverage_percent": 50,
+        "activity_state": "nieustalone",
+        "reasons": [
+          {
+            "criterion": "outdated",
+            "points": 0,
+            "reason": "Nie stwierdzono problemu",
+            "evidence": [
+              {
+                "source_url": "https://zrodlo-test.example.invalid/ocena",
+                "verified_at": "2026-10-27",
+                "note": "FIKCYJNY DOWÓD TESTOWY: testowo brak problemu",
+                "value": false
+              }
+            ]
+          },
+          {
+            "criterion": "mobile_issues",
+            "points": 0,
+            "reason": "Nie stwierdzono problemu",
+            "evidence": [
+              {
+                "source_url": "https://zrodlo-test.example.invalid/ocena",
+                "verified_at": "2026-10-27",
+                "note": "FIKCYJNY DOWÓD TESTOWY: testowo brak problemu",
+                "value": false
+              }
+            ]
+          },
+          {
+            "criterion": "unclear_offer",
+            "points": 0,
+            "reason": "Nie stwierdzono problemu",
+            "evidence": [
+              {
+                "source_url": "https://zrodlo-test.example.invalid/ocena",
+                "verified_at": "2026-10-27",
+                "note": "FIKCYJNY DOWÓD TESTOWY: testowo brak problemu",
+                "value": false
+              }
+            ]
+          },
+          {
+            "criterion": "technical_issues",
+            "points": 0,
+            "reason": "Nie stwierdzono problemu",
+            "evidence": [
+              {
+                "source_url": "https://zrodlo-test.example.invalid/ocena",
+                "verified_at": "2026-10-27",
+                "note": "FIKCYJNY DOWÓD TESTOWY: testowo brak problemu",
+                "value": false
+              }
+            ]
+          },
+          {
+            "criterion": "activity",
+            "points": 0,
+            "reason": "Brak aktualnych oznak w danych — nie oznacza nieaktywności",
+            "evidence": []
+          },
+          {
+            "criterion": "sales_potential",
+            "points": 0,
+            "reason": "Potencjał nieustalony — bez punktów",
+            "evidence": []
+          }
+        ],
+        "scored_at": "2026-10-27",
+        "scoring_version": 1
+      }
+    }
+  ]
+}

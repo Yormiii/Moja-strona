@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "freshness_days": 180,
+  "weights": {
+    "missing_website": 50,
+    "outdated": 15,
+    "mobile_issues": 15,
+    "unclear_offer": 10,
+    "technical_issues": 10,
+    "activity": 20,
+    "sales_potential": 30
+  }
+}

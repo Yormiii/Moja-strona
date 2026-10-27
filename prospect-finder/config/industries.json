@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "status": "robocza-do-potwierdzenia",
+  "note": "W repozytorium nie było zatwierdzonej listy 30 branż. Lista robocza; zmień konfigurację po potwierdzeniu właściciela.",
+  "industries": [
+    {
+      "id": "hydraulik",
+      "label": "Usługi hydrauliczne",
+      "group": "budownictwo",
+      "demo_template": "hydraulik"
+    },
+    {
+      "id": "elektryk",
+      "label": "Usługi elektryczne",
+      "group": "budownictwo",
+      "demo_template": "elektryk"
+    },
+    {
+      "id": "remonty",
+      "label": "Budowa i remonty",
+      "group": "budownictwo",
+      "demo_template": "hydraulik"
+    },
+    {
+      "id": "malowanie",
+      "label": "Malowanie i tapetowanie",
+      "group": "remonty",
+      "demo_template": "hydraulik"
+    },
+    {
+      "id": "plytkarz",
+      "label": "Glazurnictwo",
+      "group": "remonty",
+      "demo_template": "hydraulik"
+    },
+    {
+      "id": "stolarz",
+      "label": "Stolarstwo",
+      "group": "budownictwo",
+      "demo_template": "hydraulik"
+    },
+    {
+      "id": "dekarz",
+      "label": "Dekarstwo",
+      "group": "budownictwo",
+      "demo_template": "hydraulik"
+    },
+    {
+      "id": "brukarz",
+      "label": "Brukarstwo",
+      "group": "budownictwo",
+      "demo_template": "hydraulik"
+    },
+    {
+      "id": "ogrodnik",
+      "label": "Usługi ogrodnicze",
+      "group": "uslugi-lokalne",
+      "demo_template": "hydraulik"
+    },
+    {
+      "id": "sprzatanie",
+      "label": "Sprzątanie",
+      "group": "uslugi-lokalne",
+      "demo_template": "hydraulik"
+    },
+    {
+      "id": "klimatyzacja",
+      "label": "Klimatyzacja i wentylacja",
+      "group": "budownictwo",
+      "demo_template": "elektryk"
+    },
+    {
+      "id": "pompy-ciepla",
+      "label": "Pompy ciepła i ogrzewanie",
+      "group": "budownictwo",
+      "demo_template": "hydraulik"
+    },
+    {
+      "id": "mechanik",
+      "label": "Warsztat samochodowy",
+      "group": "motoryzacja",
+      "demo_template": "mechanik"
+    },
+    {
+      "id": "wulkanizacja",
+      "label": "Wulkanizacja",
+      "group": "motoryzacja",
+      "demo_template": "mechanik"
+    },
+    {
+      "id": "detailing",
+      "label": "Auto detailing",
+      "group": "motoryzacja",
+      "demo_template": "mechanik"
+    },
+    {
+      "id": "pomoc-drogowa",
+      "label": "Pomoc drogowa",
+      "group": "motoryzacja",
+      "demo_template": "mechanik"
+    },
+    {
+      "id": "barber",
+      "label": "Barber",
+      "group": "beauty",
+      "demo_template": "barber"
+    },
+    {
+      "id": "fryzjer",
+      "label": "Fryzjerstwo",
+      "group": "beauty",
+      "demo_template": "barber"
+    },
+    {
+      "id": "stylistka",
+      "label": "Stylizacja paznokci i rzęs",
+      "group": "beauty",
+      "demo_template": "stylistka"
+    },
+    {
+      "id": "kosmetyczka",
+      "label": "Kosmetyka",
+      "group": "beauty",
+      "demo_template": "stylistka"
+    },
+    {
+      "id": "masaz",
+      "label": "Masaż",
+      "group": "uslugi-lokalne",
+      "demo_template": "trener"
+    },
+    {
+      "id": "trener",
+      "label": "Trening personalny",
+      "group": "uslugi-lokalne",
+      "demo_template": "trener"
+    },
+    {
+      "id": "restauracja",
+      "label": "Restauracja",
+      "group": "gastronomia",
+      "demo_template": "restauracja"
+    },
+    {
+      "id": "kawiarnia",
+      "label": "Kawiarnia",
+      "group": "gastronomia",
+      "demo_template": "restauracja"
+    },
+    {
+      "id": "catering",
+      "label": "Catering",
+      "group": "gastronomia",
+      "demo_template": "restauracja"
+    },
+    {
+      "id": "gospodarstwo",
+      "label": "Gospodarstwa i sprzedaż lokalna",
+      "group": "rolnictwo",
+      "demo_template": "hydraulik"
+    },
+    {
+      "id": "agroturystyka",
+      "label": "Agroturystyka",
+      "group": "turystyka",
+      "demo_template": "restauracja"
+    },
+    {
+      "id": "pensjonat",
+      "label": "Pensjonaty i małe hotele",
+      "group": "noclegi",
+      "demo_template": "restauracja"
+    },
+    {
+      "id": "apartamenty",
+      "label": "Apartamenty i pokoje gościnne",
+      "group": "noclegi",
+      "demo_template": "restauracja"
+    },
+    {
+      "id": "kancelaria",
+      "label": "Kancelaria prawna",
+      "group": "uslugi-lokalne",
+      "demo_template": "kancelaria"
+    }
+  ],
+  "categories": [
+    {
+      "id": "wszystkie",
+      "label": "Wszystkie firmy"
+    },
+    {
+      "id": "modernizacja",
+      "label": "Modernizacja istniejących stron — każda branża"
+    }
+  ]
+}

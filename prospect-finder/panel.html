@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; base-uri 'none'; form-action 'none'">
+<title>WebForge Prospect Finder — lokalny przegląd</title>
+<link rel="stylesheet" href="panel.css">
+<script type="module" src="panel.mjs"></script>
+</head>
+<body><main>
+<h1>Prospect Finder <small>v0.1</small></h1>
+<p>Przegląd lokalnego eksportu. Plik pozostaje w przeglądarce — panel niczego nie wysyła. Wynik to priorytet weryfikacji, nie obietnica sprzedaży ani zgoda na kontakt.</p>
+<section class="toolbar" aria-label="Plik i filtry">
+<label>Otwórz eksport JSON <input id="file" type="file" accept=".json,application/json"></label>
+<label>Nazwa / miasto<input id="query" type="search" placeholder="Szukaj w lokalnym eksporcie"></label>
+<label>Branża<select id="industry"><option value="">Wszystkie</option></select></label>
+<label>Województwo<select id="province"><option value="">Cała Polska</option></select></label>
+<label>Status<select id="status"><option value="">Wszystkie</option></select></label>
+<label>Kategoria<select id="category"><option value="">Wszystkie</option><option value="modernizacja">Modernizacja stron — każda branża</option></select></label>
+<button id="download" type="button" disabled>Pobierz decyzje do weryfikacji</button>
+</section>
+<p id="message" role="status" aria-live="polite">Wybierz eksport utworzony poleceniem export. Dla próby pobierz fixtures/panel-demo.json z repozytorium — zawiera wyłącznie dane fikcyjne.</p>
+<div id="records"></div>
+<p>Decyzje z panelu nie zmieniają SQLite. Zapisz plik i zastosuj go lokalnie poleceniem apply-decisions, a następnie otwórz świeży eksport. Podstawa kontaktu musi zostać świadomie zweryfikowana. W v0.1 żadna wiadomość ani demonstracja rzeczywistej firmy nie jest wysyłana lub publikowana.</p>
+</main></body></html>

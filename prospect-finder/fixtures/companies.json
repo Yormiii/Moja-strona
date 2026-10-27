@@ -1,0 +1,254 @@
+{
+  "dataset_type": "fictional",
+  "records": [
+    {
+      "name": "Warsztat Model — FIRMA FIKCYJNA TEST",
+      "industry": "mechanik",
+      "city": "Łódź",
+      "voivodeship": "lodzkie",
+      "country": "PL",
+      "address": "Adres fikcyjny 0",
+      "website": null,
+      "contacts": [
+        {
+          "kind": "email",
+          "value": "test-a@example.invalid",
+          "source_url": "https://zrodlo-test.example.invalid/test-a",
+          "verified_at": "2026-10-27"
+        }
+      ],
+      "source": {
+        "provider": "fixture-only",
+        "id": "test-a",
+        "url": "https://zrodlo-test.example.invalid/test-a"
+      },
+      "last_verified_at": "2026-10-27",
+      "activity_signs": [
+        {
+          "description": "FIKCYJNY sygnał: testowy wpis o otwarciu",
+          "source_url": "https://zrodlo-test.example.invalid/test-a",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "facts": {
+        "website_status": {
+          "value": "missing",
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: w scenariuszu potwierdzono brak strony"
+        },
+        "sales_potential": {
+          "value": "high",
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: w scenariuszu potwierdzono potrzebę strony"
+        }
+      },
+      "services": [
+        "Wyłącznie przykładowa usługa testowa"
+      ],
+      "description": "Fikcyjny opis do testowania integracji. Nie przedstawia oferty rzeczywistej firmy.",
+      "fictional": true
+    },
+    {
+      "name": "Pensjonat Model — FIRMA FIKCYJNA TEST",
+      "industry": "pensjonat",
+      "city": "Gdańsk",
+      "voivodeship": "pomorskie",
+      "country": "PL",
+      "address": "Adres fikcyjny 0",
+      "website": "https://pensjonat-test.example.invalid/",
+      "contacts": [
+        {
+          "kind": "email",
+          "value": "test-b@example.invalid",
+          "source_url": "https://zrodlo-test.example.invalid/test-b",
+          "verified_at": "2026-10-27"
+        }
+      ],
+      "source": {
+        "provider": "fixture-only",
+        "id": "test-b",
+        "url": "https://zrodlo-test.example.invalid/test-b"
+      },
+      "last_verified_at": "2026-10-27",
+      "activity_signs": [],
+      "facts": {
+        "website_status": {
+          "value": "present",
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: w scenariuszu strona istnieje"
+        },
+        "outdated": {
+          "value": true,
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo przestarzały układ"
+        },
+        "mobile_issues": {
+          "value": true,
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo nieczytelny układ na telefonie"
+        },
+        "unclear_offer": {
+          "value": false,
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo oferta czytelna"
+        },
+        "technical_issues": {
+          "value": true,
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo niedziałające linki"
+        },
+        "sales_potential": {
+          "value": "medium",
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowa ocena oferty"
+        }
+      },
+      "services": [
+        "Wyłącznie przykładowa usługa testowa"
+      ],
+      "description": "Fikcyjny opis do testowania integracji. Nie przedstawia oferty rzeczywistej firmy.",
+      "fictional": true
+    },
+    {
+      "name": "Gospodarstwo Model — FIRMA FIKCYJNA TEST",
+      "industry": "gospodarstwo",
+      "city": "Lublin",
+      "voivodeship": "lubelskie",
+      "country": "PL",
+      "address": "Adres fikcyjny 0",
+      "website": null,
+      "contacts": [],
+      "source": {
+        "provider": "fixture-only",
+        "id": "test-c",
+        "url": "https://zrodlo-test.example.invalid/test-c"
+      },
+      "last_verified_at": "2026-10-27",
+      "activity_signs": [],
+      "facts": {},
+      "services": [
+        "Wyłącznie przykładowa usługa testowa"
+      ],
+      "description": "Fikcyjny opis do testowania integracji. Nie przedstawia oferty rzeczywistej firmy.",
+      "fictional": true
+    },
+    {
+      "name": "Salon Model — FIRMA FIKCYJNA TEST",
+      "industry": "kosmetyczka",
+      "city": "Poznań",
+      "voivodeship": "wielkopolskie",
+      "country": "PL",
+      "address": "Adres fikcyjny 0",
+      "website": "https://salon-test.example.invalid/",
+      "contacts": [
+        {
+          "kind": "email",
+          "value": "test-d@example.invalid",
+          "source_url": "https://zrodlo-test.example.invalid/test-d",
+          "verified_at": "2026-10-27"
+        }
+      ],
+      "source": {
+        "provider": "fixture-only",
+        "id": "test-d",
+        "url": "https://zrodlo-test.example.invalid/test-d"
+      },
+      "last_verified_at": "2026-10-27",
+      "activity_signs": [],
+      "facts": {
+        "website_status": {
+          "value": "present",
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowa strona"
+        },
+        "outdated": {
+          "value": false,
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo brak problemu"
+        },
+        "mobile_issues": {
+          "value": false,
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo brak problemu"
+        },
+        "unclear_offer": {
+          "value": false,
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo brak problemu"
+        },
+        "technical_issues": {
+          "value": false,
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: testowo brak problemu"
+        }
+      },
+      "services": [
+        "Wyłącznie przykładowa usługa testowa"
+      ],
+      "description": "Fikcyjny opis do testowania integracji. Nie przedstawia oferty rzeczywistej firmy.",
+      "fictional": true
+    },
+    {
+      "name": "Warsztat Model — FIRMA FIKCYJNA TEST",
+      "industry": "mechanik",
+      "city": "Łódź",
+      "voivodeship": "lodzkie",
+      "country": "PL",
+      "address": "Adres fikcyjny 0",
+      "website": null,
+      "contacts": [
+        {
+          "kind": "email",
+          "value": "test-a@example.invalid",
+          "source_url": "https://zrodlo-test.example.invalid/test-a",
+          "verified_at": "2026-10-27"
+        }
+      ],
+      "source": {
+        "provider": "fixture-only",
+        "id": "test-a",
+        "url": "https://zrodlo-test.example.invalid/test-a"
+      },
+      "last_verified_at": "2026-10-27",
+      "activity_signs": [
+        {
+          "description": "FIKCYJNY sygnał: testowy wpis o otwarciu",
+          "source_url": "https://zrodlo-test.example.invalid/test-a",
+          "observed_at": "2026-10-27"
+        }
+      ],
+      "facts": {
+        "website_status": {
+          "value": "missing",
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: w scenariuszu potwierdzono brak strony"
+        },
+        "sales_potential": {
+          "value": "high",
+          "source_url": "https://zrodlo-test.example.invalid/ocena",
+          "verified_at": "2026-10-27",
+          "note": "FIKCYJNY DOWÓD TESTOWY: w scenariuszu potwierdzono potrzebę strony"
+        }
+      },
+      "services": [
+        "Wyłącznie przykładowa usługa testowa"
+      ],
+      "description": "Fikcyjny opis do testowania integracji. Nie przedstawia oferty rzeczywistej firmy.",
+      "fictional": true
+    }
+  ]
+}

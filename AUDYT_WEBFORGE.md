@@ -580,3 +580,52 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 - Nie użyto płatnych usług, nie tworzono PR i nie scalano z `main`.
 
 **Następny krok:** sprawdzić wygląd czterech wariantów i katalogu w istniejącym podglądzie Cloudflare; kolejne fikcyjne firmy można dodawać przez sam JSON i ponowny przebieg generatora.
+
+### 2026-10-27 — WebForge Prospect Finder v0.1
+
+**Zakres:** osobny moduł na `feature/demo-generator`, bez zmian `main` i produkcyjnej strony. Pamiętano o automatycznej publikacji gałęzi przez Cloudflare Pages. Nie uruchamiano wysyłki, publikacji demo rzeczywistych firm ani płatnych API.
+
+**Stan wejściowy i decyzje:**
+
+- Przeczytano audyt i drzewo gałęzi, commit bazowy `59c9b0b1f900dfe3765a8d32ed54711d2c786056`. `main` na początku wskazywał `8f07e41bdfad0d491b4d617c8a23a25a9465bb72`.
+- W repozytorium odnaleziono osiem profili generatora, ale nie zatwierdzoną listę 30 branż. Zadano opcjonalne pytanie o tę listę; wobec braku odpowiedzi przygotowano w konfiguracji jawną listę **roboczą do potwierdzenia**, zamiast przypisywać jej status wcześniejszych ustaleń.
+- Pierwsza wersja korzysta z danych fikcyjnych i lokalnego importu publicznych danych w JSON. Nie jest to jeszcze automatyczne pobieranie firm z internetu ani automatyczny audyt witryn. Taki zakres jest zgodny z dopuszczeniem danych testowych w zadaniu.
+
+**Wykonane działania:**
+
+- Dodano osobny `prospect-finder/`: Python 3.10+ i SQLite z biblioteki standardowej, bez zależności, API i nowych usług.
+- `config/industries.json`: 30 roboczych branż obejmujących usługi lokalne, beauty, motoryzację, budowę i remonty, gospodarstwa, agroturystykę, noclegi, gastronomię i usługi profesjonalne; mapowanie na istniejące profile wizualne generatora.
+- `config/locations.json`: 16 województw, Polska, przykładowe zapisane wyszukiwania. Filtry obsługują dowolne miasto, województwo i cały kraj, również w połączeniu. Modernizacja istniejących stron jest osobną kategorią niezależną od branży.
+- `SourceAdapter` i `JsonFileSource`: kontrakt do dalszych źródeł oraz działające adaptery `test-json` i `public-json`. Brak wywołań HTTP. Publiczny import wymaga pliku poza repozytorium i udokumentowanego pochodzenia.
+- Dla firm przechowywane są nazwa, branża, kraj/miasto/województwo/adres, opcjonalna strona, kontakty z osobnymi źródłami i datami, identyfikatory i linki źródeł, data ostatniej weryfikacji, oznaki aktywności oraz potwierdzone fakty. Import nie przyjmuje statusów, zgód ani sekretów jako dodatkowych pól.
+- Punktacja 0–100 z rozłącznymi ścieżkami: brak strony do 50 punktów albo przestarzałość/mobile/oferta/technika 15+15+10+10. Aktywność do 20 i udokumentowany potencjał do 30. Każdy składnik ma uzasadnienie, dowody i datę.
+- Fakty starsze niż 180 dni nie dają punktów. Puste WWW nie oznacza braku strony; brak oznak działalności pozostaje stanem nieustalonym. Osobne pokrycie danych nie jest pewnością statystyczną ani prawdopodobieństwem zakupu.
+- Lokalna SQLite przechowuje rekordy, tożsamości źródeł, historię statusów i zablokowane zdarzenia automatyzacji. Deduplikacja używa ID w źródle albo normalizowanej nazwy i pełnej lokalizacji/adresu. Nie scala samych wspólnych domen/telefonów ani oddziałów o innych adresach. Import jest transakcyjny i nie resetuje statusów; starsze informacje nie nadpisują nowszych pól.
+- Dodano dziewięć statusów wymaganych w zadaniu i kontrolowane przejścia. Publiczny kontakt lub wysoka ocena nie nadają automatycznie statusu „kontakt dozwolony”. Ten status wymaga jawnego potwierdzenia z datą i źródłem; zmiana kanałów lub przeterminowanie blokują dalsze oznaczenie kontaktu.
+- Akceptacja wymaga kompletności danych do szkicu demo. Adapter `demo-input` tworzy wyłącznie JSON poza repozytorium, bez HTML, publikacji czy wysyłki. Nie wymyśla brakujących usług, opisu ani kontaktów.
+- Dodano eksport CSV i JSON z oceną i źródłami; CSV jest zabezpieczony przed interpretacją formuł. Eksport nie nadpisuje istniejących plików.
+- Baza domyślnie powstaje w `~/.local/share/webforge-prospects/`. Program odmawia zapisu baz, eksportów i szkiców w repozytorium. Nie dodano żadnej bazy ani prywatnego eksportu do Git.
+- Dodano responsywny panel `panel.html` / `panel.css` / `panel.mjs` do Safari/iPada. Otwiera eksport z Plików, filtruje i pokazuje dowody, przygotowuje plik decyzji. Nie przesyła danych, nie używa fetch, cookies ani localStorage; CSP blokuje połączenia sieciowe. Zmiany bazy wymagają lokalnego `apply-decisions`, transakcji i zgodnego `expected_status`.
+- To panel offline-first, nie publiczny serwer SQLite. Import/eksport i zastosowanie decyzji wymagają środowiska Python na komputerze lub prywatnym serwerze; nie zadeklarowano pełnej pracy backendu wyłącznie na iPadzie. Udostępnienie panelu w istniejącym podglądzie zależy od katalogu publikacji Cloudflare; konfiguracji hostingu nie zmieniano.
+- `config/automation.json` i tabela `automation_events` przygotowują kontrakt pod szkice/publikację demo, personalizację wiadomości, odpowiedzi, Telegram, wyceny i strony finalne po akceptacji. Wszystkie akcje są wyłączone, zdarzenia mają `state: blocked`; nie ma workerów ani kodu wysyłki.
+- `fixtures/companies.json`: cztery wyraźnie fikcyjne firmy i jeden duplikat; wszystkie kontakty/źródła to domeny `.invalid`. `fixtures/panel-demo.json` to również wyłącznie fikcyjny eksport do demonstracji panelu. Jego tymczasową bazę usunięto po utworzeniu.
+- Jedyna zmiana funkcjonalna istniejącego generatora: dwa opcjonalne, walidowane i kodowane pola `etykieta_branzy` i `cta`. Dzięki nim profil wizualny z ośmiu branż można wykorzystać dla pozostałych branż bez błędnej etykiety i bez przebudowy układu. Zaktualizowano instrukcję tych pól. Dotychczasowe dane i wszystkie wygenerowane demonstracje pozostały bajtowo zgodne z bazą.
+- Dodano obszerną instrukcję modułu i testy.
+
+**Weryfikacja:**
+
+- **58/58 przypadków przeszło, 0 błędów:** 27 testów Python/SQLite/CLI, 5 testów panelu i mostu, 26 dotychczasowych testów generatora.
+- Testy objęły lokalizacje, modernizację niezależną od branży, źródła/daty, nieustalone i stare dane, oba warianty punktacji do 100, deduplikację i oddziały, zachowanie nowszych informacji/statusów, transakcyjność, dziewięć statusów, potwierdzenia kontaktu i ich świeżość, decyzje z optymistyczną kontrolą wersji, CSV/JSON, ochronę ścieżek, trwałość bazy oraz cały przebieg CLI.
+- Test integracyjny potwierdził poprawne wejście istniejącego generatora dla wszystkich 30 branż. Akceptacja niekompletnych rekordów jest blokowana. Nie utworzono żadnego HTML rzeczywistej firmy.
+- Testy panelu sprawdzają walidację eksportu, niebezpieczne linki, wymaganie podstawy kontaktu i brak kodu wysyłki/HTML z danych. Nie przeprowadzono nowej wizualnej weryfikacji Safari/iPada; wcześniejsze ograniczenie przeglądarki w środowisku pozostaje aktualne.
+- Ponownie sprawdzono wyłącznie fikcyjny charakter obu publikowanych zbiorów. Bazy testowe i robocze eksporty były w usuwanych katalogach tymczasowych poza repozytorium.
+- Wersja testowa środowiska: Python 3.12.14 i Node.js 24.19.0. Brak opłat za biblioteki/API.
+
+**Ograniczenia i następne kroki:**
+
+1. Potwierdzić lub podmienić roboczą listę 30 branż w JSON.
+2. Sprawdzić panel w Safari i możliwość udostępnienia jego statycznego katalogu przez istniejący podgląd; nie wystawiać SQLite ani eksportów publicznie.
+3. W osobnym zadaniu podłączyć wybrane publiczne źródło po weryfikacji jego dostępu, warunków i schematu; obecne „find” przeszukuje importowany plik, nie internet.
+4. Deduplikacja jest konserwatywna — warianty nazw i niejednoznaczne tożsamości mogą wymagać ręcznej weryfikacji. Ocena sprzedażowa jest jawną oceną źródła/reviewera, nie pomiarem rynku ani domysłem AI.
+5. Nie uruchamiać automatycznej komunikacji, Telegrama, publikacji rzeczywistych firm ani stron finalnych bez osobnych zadań i akceptacji. JSON szkicu nie może trafić przypadkiem do publicznego katalogu generatora.
+6. Po testach opublikować wyłącznie kod, fikcyjne przykłady i audyt na właściwej gałęzi oraz potwierdzić zawartość GitHub i niezmieniony `main`. Nie tworzyć PR i nie scalać.

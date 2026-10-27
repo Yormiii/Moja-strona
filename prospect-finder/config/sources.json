@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "adapters": {
+    "test-json": {
+      "kind": "json-file",
+      "mode": "fictional",
+      "enabled": true,
+      "description": "Jawnie fikcyjne rekordy testowe z fixtures/companies.json"
+    },
+    "public-json": {
+      "kind": "json-file",
+      "mode": "public",
+      "enabled": true,
+      "description": "Lokalny plik z legalnie pozyskanymi publicznymi danymi; brak automatycznego pobierania w v0.1"
+    }
+  },
+  "network_fetch_enabled": false,
+  "paid_apis_enabled": false
+}
