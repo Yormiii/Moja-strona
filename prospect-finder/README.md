@@ -155,7 +155,7 @@ Obie ścieżki potrzeby strony są rozłączne — nie sumujemy braku strony z j
 
 SQLite przechowuje rekord, wszystkie źródła, kontakty z pochodzeniem, oceniane fakty, status, historię decyzji i zablokowane zdarzenia przyszłej automatyzacji. Wynik jest obliczany na bieżąco z faktów i konfiguracji.
 
-Deduplikacja używa identyfikatora w źródle albo znormalizowanej nazwy + kraju + województwa + miasta + adresu. Dane fikcyjne i rzeczywiste są oddzielnymi tożsamościami. Nie łączymy oddziałów tylko dlatego, że mają tę samą domenę lub centralny telefon. Rekordy z różnych źródeł o różnych nazwach/adresach wymagają ręcznej analizy; to konserwatywna deduplikacja, nie inteligentne rozpoznawanie wszystkich wariantów nazw. Kolizje dwóch różnych istniejących tożsamości wstrzymują transakcję.
+Deduplikacja używa identyfikatora w źródle albo znormalizowanej nazwy + kraju + województwa + miasta + adresu. Dane fikcyjne i rzeczywiste są oddzielnymi tożsamościami. Nie łączymy oddziałów tylko dlatego, że mają tę samą domenę lub centralny telefon. Jeśli OSM nie podaje adresu, tożsamość uwzględnia współrzędne, żeby dwie lokalizacje o tej samej nazwie w jednym mieście nie zniknęły jako duplikat. Rekordy z różnych źródeł o różnych nazwach/adresach wymagają ręcznej analizy; to konserwatywna deduplikacja, nie inteligentne rozpoznawanie wszystkich wariantów nazw. Kolizje dwóch różnych istniejących tożsamości wstrzymują transakcję.
 
 Ponowny import aktualizuje dane i scala pochodzenie bez resetowania statusu; starszy import nie nadpisuje nowszych pól. Wszystkie rekordy paczki są walidowane przed transakcją. Nie ma kasowania rekordów ani automatycznego czyszczenia.
 

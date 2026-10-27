@@ -132,6 +132,7 @@ class OverpassSource:
                 r=groups[key].pop(0)
                 # Node + building duplicates with identical business/location are sampled once.
                 identity=(r['name'].casefold(),r['city'].casefold(),r['address'].casefold())
+                if not r['address']:identity+=(f"{r['geo']['lat']:.5f},{r['geo']['lon']:.5f}",)
                 if identity in seen_businesses: continue
                 seen_businesses.add(identity);selected.append(r)
                 if len(selected)==limit: break

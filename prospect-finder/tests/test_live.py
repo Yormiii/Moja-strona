@@ -54,6 +54,14 @@ class LiveTests(unittest.TestCase):
         self.assertEqual(classify({'tourism':'guest_house','name':'Agroturystyka TEST'}),'agroturystyka')
         self.assertIsNone(classify({'shop':'unknown'}))
 
+    def test_same_name_branches_without_address_are_not_collapsed(self):
+        a=element(101,name='FIKCYJNA SIEĆ TEST');b=element(102,name='FIKCYJNA SIEĆ TEST');b['lon']=16.94
+        c=self.client(lambda *args:Response(200,{},json.dumps({'elements':[a,b]}).encode(),self.clock()))
+        records=OverpassSource(c).search(limit=3);self.assertEqual(len(records),2)
+        store=f.Store(self.path/'branches.sqlite3')
+        try:self.assertEqual(len(set(store.ingest(records))),2)
+        finally:store.close()
+
     def test_mapping_contacts_license_geo_not_activity(self):
         r=element_record(element(**{'contact:email':'test@example.invalid','contact:phone':'+48 000 000 000','website':'company.example.invalid'}),region_config('poznan'),dt.date.today().isoformat())
         self.assertFalse(r['fictional']);self.assertEqual(len(r['contacts']),2);self.assertEqual(r['website'],'https://company.example.invalid/')

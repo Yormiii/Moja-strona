@@ -254,6 +254,9 @@ def private_path(path):
 
 def fingerprint(record):
     parts = [str(record['fictional']), record['name'], record['country'], record['voivodeship'], record['city'], record['address']]
+    # Same-name OSM branches without addresses must not collapse across a city.
+    if not record['address'] and record.get('geo'):
+        parts.append(f"{record['geo']['lat']:.5f},{record['geo']['lon']:.5f}")
     return hashlib.sha256('\0'.join(norm(v) for v in parts).encode()).hexdigest()
 
 

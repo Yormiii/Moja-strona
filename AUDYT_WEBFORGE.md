@@ -692,3 +692,16 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 2. Ręcznie zweryfikować klasyfikację, źródła, aktualność kontaktów i ewentualne oznaki braku strony lub przestarzałości. Nie traktować próbki OSM jako potwierdzonej listy klientów do kontaktu.
 3. Potwierdzić listę 30 branż i rozważyć osobne źródło dla słabo reprezentowanych rzemieślników i gospodarstw. Nie zwiększać agresywnie zapytań publicznego Overpass.
 4. Po testach zapisać wyłącznie kod/dokumentację i audyt na `feature/demo-generator`, potwierdzić brak zmian `main` i produkcyjnych plików. Nie tworzyć PR, nie publikować demo rzeczywistych firm i nie wysyłać wiadomości.
+
+### 2026-10-27 — publikacja v0.2 i końcowa poprawka deduplikacji
+
+- Opublikowano implementację w commicie [6d65e3a](https://github.com/Yormiii/Moja-strona/commit/6d65e3a97ddd768fe8667d92119817e98bf915f9) na [feature/demo-generator](https://github.com/Yormiii/Moja-strona/tree/feature/demo-generator).
+- Ponownie odczytano wszystkie 11 publikowanych plików z GitHub: ich treść była zgodna z przygotowaną wersją. Lista gałęzi potwierdziła niezmieniony `main`.
+- W końcowym przeglądzie wykryto przypadek dwóch oddziałów o tej samej nazwie i mieście, ale bez adresu. Zmieniono tożsamość i próbkowanie: w takim przypadku uwzględniane są współrzędne. Nie wpływa to na stare rekordy bez współrzędnych ani silne identyfikatory źródła.
+- Dodano test, który symuluje dwa takie oddziały i potwierdza zachowanie obu w wynikach i SQLite. Końcowy wynik: **82/82 testy** (51 Python, 5 panel/most, 26 generator).
+- Zaktualizowano kod, README i niniejszy audyt na tej samej gałęzi. Nie dodano baz, cache ani rzeczywistych danych do repozytorium. Cały generator demonstracji i pliki produkcyjne pozostały bez zmian.
+- Wynik rzeczywistej próby pozostaje **0 znalezionych firm** z powodu zablokowanego DNS/egress. Wyniki symulacji nie są liczone jako rzeczywiste firmy.
+- Nie wysłano wiadomości, nie uruchomiono płatnego API ani publikacji demonstracji rzeczywistych firm. Nie tworzono PR i nie scalano z `main`.
+- Nie deklarowano udanego wdrożenia Cloudflare ani przetestowania zewnętrznych stron w tym środowisku; potwierdzany jest zapis kodu w GitHub.
+
+**Następny krok:** uruchomić gotową komendę discovery w prywatnym środowisku z działającym DNS/HTTPS i ręcznie zweryfikować pozyskane rekordy przed akceptacją lub kontaktem. Cel 20–30 rzeczywistych firm pozostaje do wykonania w takim środowisku.
