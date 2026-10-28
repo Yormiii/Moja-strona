@@ -949,3 +949,12 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 - Dodano README_GEOFABRIK.md z pomiarami, projektem filtrowania/cache i instrukcją iPada; zaktualizowano README, README_ACTIONS i bieżącą liczbę testów w instrukcji diagnostyki Overpass.
 
 **Następne kroki:** opublikować kod/audyt na feature i zweryfikować zapis oraz niezmieniony main/produkcję. Użytkownik kopiuje aktualny szablon do prywatnego runnera, wybiera nowy Run workflow z mode=geofabrik-test i geofabrik_profile=wielkopolskie-sample, zachowuje sekrety/magazyn; po sukcesie wybiera osobny wielkopolskie-full. Następnie porównać pomiary Actions i dopiero w kolejnym etapie wdrożyć adapter/filtrowanie PBF. Nie uruchomiono nowego Actions ani nie zmieniono prywatnego runnera za użytkownika.
+
+### 2026-10-28 — publikacja testu Geofabrik potwierdzona
+
+- Zapisano kod, testy, konfigurację, workflow i dokumentację w commicie [cfd40db](https://github.com/Yormiii/Moja-strona/commit/cfd40db21d406d8382f867557e09b275d34aabdc) na [feature/demo-generator](https://github.com/Yormiii/Moja-strona/tree/feature/demo-generator).
+- Zweryfikowano sumy blobów wszystkich 12 zmienionych/dodanych plików. Pozostałe 58 plików zachowało SHA; main pozostaje na `8f07e41bdfad0d491b4d617c8a23a25a9465bb72`. Produkcja, formularze, generator, panel i punktacja nie zmieniły się.
+- Testy końcowe: 107 Python, panel i generator — przeszły. Potwierdzono brak dopisywania testów do produkcyjnego Summary, brak surowego PBF w odszyfrowanym artefakcie oraz zgodne i poprawne składniowo workflow.
+- Rzeczywisty lokalny benchmark pełnej Wielkopolski zakończył się powodzeniem: 159490674 B, zgodne MD5, 12,191 s transferu / 33,799 s całości, RSS około 24,3 MiB. Nie jest to pomiar z GitHub Actions ani wynik pozyskania firm.
+- Nie zmieniono prywatnego runnera, sekretów ani magazynu, nie utworzono PR i nie uruchomiono nowego Actions. Adapter PBF i filtrowanie rekordów pozostają zaprojektowanym kolejnym etapem, nie funkcją udawaną przez benchmark.
+- Użytkownik: [README_GEOFABRIK.md](https://github.com/Yormiii/Moja-strona/blob/feature/demo-generator/prospect-finder/README_GEOFABRIK.md) → aktualizacja szablonu workflow w prywatnym runnerze → nowy Run workflow z mode=geofabrik-test / wielkopolskie-sample → po sukcesie osobny wielkopolskie-full. Zachować klucz i magazyn; nie pobierać Polski na każde uruchomienie.
