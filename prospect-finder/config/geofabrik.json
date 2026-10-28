@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "datasets": {
+    "wielkopolskie": {
+      "url": "https://download.geofabrik.de/europe/poland/wielkopolskie-latest.osm.pbf",
+      "info_url": "https://download.geofabrik.de/europe/poland/wielkopolskie.html"
+    },
+    "opolskie": {
+      "url": "https://download.geofabrik.de/europe/poland/opolskie-latest.osm.pbf",
+      "info_url": "https://download.geofabrik.de/europe/poland/opolskie.html"
+    }
+  },
+  "profiles": ["wielkopolskie-sample", "wielkopolskie-full", "opolskie-sample", "opolskie-full"],
+  "sample_bytes": 1048576,
+  "chunk_bytes": 1048576,
+  "max_file_bytes": 268435456,
+  "max_bytes_per_day": 402653184,
+  "max_requests_per_run": 8,
+  "max_requests_per_day": 12,
+  "min_interval_seconds": 5,
+  "connect_timeout_seconds": 8,
+  "read_timeout_seconds": 30,
+  "max_total_seconds": 300,
+  "max_redirects": 2,
+  "max_wait_seconds": 30,
+  "minimum_free_disk_bytes": 33554432,
+  "automatic_schedule": false,
+  "license": "ODbL-1.0",
+  "attribution": "© OpenStreetMap contributors; extract by Geofabrik"
+}

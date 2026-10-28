@@ -890,3 +890,62 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 - Ostateczne testy: 90 Python, panel i generator — przeszły. YAML/JSON, zgodność kopii, bash i składnia Python zweryfikowane. Testy nie zmieniły odziedziczonego pliku Summary.
 - Nie uruchomiono nowego GitHub Actions. Rzeczywiste lokalne sondy miały błędy odczytu/502/DNS opisane wyżej, bez importu firm. Żadne dane rzeczywistych klientów, bazy, cache ani sekrety nie trafiły do repozytorium/Cloudflare.
 - Instrukcja kolejnego działania użytkownika: [README_DIAGNOSTICS.md](https://github.com/Yormiii/Moja-strona/blob/feature/demo-generator/prospect-finder/README_DIAGNOSTICS.md) — aktualizacja workflow w prywatnym runnerze z iPada, nowy Run workflow z mode=diagnose, overpass-de, poznan, mechanik oraz zachowanym magazynem. Opcjonalna próba Private.coffee wyłącznie ręczna i zgodnie z zasadami. Adapter PBF pozostaje propozycją następnego etapu.
+
+### 2026-10-28 — Geofabrik: test źródła PBF i projekt lokalnego filtrowania
+
+**Zakres:** `feature/demo-generator`. Dodano etap testowania pobierania, nie produkcyjny importer firm. Bez zmian main, produkcyjnej strony/formularzy, generatora, panelu, punktacji i statusów prospects. Bez Overpass w nowym trybie, wysyłki, automatycznej publikacji demo, harmonogramu i płatnych usług.
+
+**Sprawdzenie źródła:**
+
+- Zweryfikowano publiczne wyciągi [Wielkopolski](https://download.geofabrik.de/europe/poland/wielkopolskie.html), [listę województw](https://download.geofabrik.de/europe/poland.html) i [dokumentację techniczną](https://download.geofabrik.de/technical.html). Dane OSM/ODbL wymagają atrybucji i nadal mają niepełne pokrycie firm.
+- Wybrano Wielkopolskę jako region docelowy oraz Opolskie jako mniejszą opcję testową (najmniejszy plik województwa na sprawdzonej liście). Nie dodano pobierania całej Polski ani automatycznego wyboru innego źródła po błędzie.
+- Nowy `config/geofabrik.json`: cztery profile województwo-sample/full. Próbka to 1 MiB; full to całe wybrane województwo z limitem 256 MiB.
+
+**Kod i workflow:**
+
+- `geofabrik.py` implementuje ograniczony, strumieniowy downloader i raport pomiarowy w Pythonie standardowym. HEAD odczytuje rozmiar, zachowuje prywatnie walidatory i obsługuje 304. Przekierowania latest → datowany PBF są dozwolone tylko na HTTPS, tym samym hoście i dla skonfigurowanego wycinka, maksymalnie dwa.
+- Sample używa Range i wymaga HTTP 206 z dokładnym Content-Range. Ignorowanie Range zatrzymuje test przed odczytem całości; nie ma cichego fallbacku na większy transfer.
+- Full pobiera sumę MD5 operatora i strumieniowo porównuje całość; zapisuje też SHA-256. Walidatory If-Match/If-Unmodified-Since chronią przed zmianą źródła między metadanymi a plikiem.
+- Sprawdzany jest pierwszy BlobHeader OSM PBF i liczba bajtów; plik .part z błędem, HTML zamiast PBF lub niedokończony transfer nie zostaje gotowym cache. Nie deklarujemy pełnego parsowania/geometrii na podstawie tej kontroli. MD5 jest porównaniem transferu z sumą operatora, nie niezależnym dowodem autentyczności; TLS pozostaje weryfikowany.
+- Raportuje rozmiar, pobrane bajty, czas transferu i całego przebiegu, HTTP, RSS procesu, cache i integralność. Nie pokazuje firm, kontaktów, ścieżek, surowych nagłówków/wyjątków ani sekretów. W tym trybie liczniki firm są nieustalone/nie dotyczy, nawet gdyby raport wejściowy zawierał taką liczbę.
+- Workflow dodał mode=geofabrik-test oraz jedno pole geofabrik_profile; łącznie pozostaje 10 pól. Obie kopie są identyczne. Nowy tryb nie tworzy klienta Overpass, nie wywołuje discovery ani ingest i ignoruje związane z nimi pola źródła. Istniejące sekrety, backend SQLite i GPG pozostają używane.
+- Nie instalowano parsera PBF, bibliotek zewnętrznych ani usług. Dotychczasowy discover nadal jest dotychczasowym wyszukiwaniem; Geofabrik-test nie udaje nowego źródła gotowych rekordów.
+
+**Zasoby, limity i ochrona:**
+
+- Bufor pobierania 1 MiB, prefiks nagłówka maks. 65540 B. Nie czytamy całego PBF do RAM. Rzeczywiste szczytowe RSS obejmuje proces testowy/Python; nie jest gwarancją pamięci przyszłego parsera i indeksu geometrii.
+- Osobny jawny budżet Geofabrik: 256 MiB/plik, 384 MiB/dzień, 8 żądań/przebieg, 12/dzień, minimum 5 s odstępu, connect 8 s, odczyt 30 s, deadline 300 s sprawdzany między operacjami oraz zapas dysku 32 MiB ponad pobranie. Nie zwiększono dotychczasowego budżetu 50 MiB Overpass/WWW.
+- Nie ma automatycznych ponowień dużego transferu. Rezerwacja przed żądaniem i konserwatywne rozliczanie błędu zapobiegają nieograniczonym pobraniom. Retry-After i budżet przechodzą przez północ i między runami przy trwałym stanie.
+- Zachowano proxy, CA/TLS i ochronę DNS/adresów prywatnych. Dozwolone są tylko skonfigurowane profile i ściśle ograniczone URL download.geofabrik.de. Nie ma dowolnego URL z formularza ani obejścia limitu/redirectu do innego hosta.
+- Nowe małe tabele pbf_usage i pbf_metadata są w istniejącej prywatnej network-cache.sqlite3. Snapshot nadal jest spójny i szyfrowany; schema prospects i deduplikacja nie zmieniły się.
+
+**Prywatne dane i cache:**
+
+- W Actions surowy PBF jest w katalogu tymczasowym poza checkoutem i archiwizowanym drzewem. Jest usuwany przed szyfrowaniem wyników także przy błędzie. Nie trafia do repozytorium, Cloudflare, Actions cache, artefaktu ani snapshotu Git.
+- Artefakt nadal zawiera wyłącznie results.tar.gpg (retencja 1 dzień); pozostają mały raport, bazy/liczniki. Limit prywatnego snapshotu 20 MiB bez zmian. Nowe dane stanu mieszczą się w dotychczasowym mechanizmie backup/restore.
+- Lokalny zachowany prywatny cache pełnego PBF może być użyty ponownie po sprawdzeniu aktualnej sumy i ponownym hashowaniu pliku. Uszkodzony cache jest pobierany od nowa; lock chroni przed konkurującym zapisem.
+- Standardowy runner nie ma trwałego cache surowego PBF między runami. Każdy jawny full benchmark pobiera tylko wybrane województwo; nie pobiera Polski. 304 metadanych nie oznacza posiadania PBF. Trwałość budżetów wymaga private-repository, temporary nadal nie zachowuje ich między runami.
+
+**Rzeczywiste testy wykonawcy — nie nowe GitHub Actions:**
+
+- Sample Wielkopolski zakończył się completed: rozmiar źródła 159490674 B, pobrano 1048576 B, poprawny nagłówek, transfer treści 1242 ms, całość 18495 ms, RSS 23461888 B (~22,4 MiB), 3 żądania z przekierowaniem. MD5 całości nie było badane w próbce.
+- Full tego samego wyciągu: completed, pobrano 159490674 B, MD5 operatora zgodne, SHA-256 25eb3d2c107b65a182950c3114b7b28e28980ff856fbc23b682c567d873f8f70. Transfer treści 12191 ms, całość 33799 ms, RSS 25481216 B (~24,3 MiB), 4 żądania. Bufor 1 MiB. Wynik nie jest estymacją z próbki.
+- Łącznie 7 rzeczywistych żądań na tej samej bazie budżetu. Odczyt zachował proxy/TLS; nie używano Overpass ani płatnego API. Geofabrik zadziałał w tym środowisku, ale nie deklarujemy jeszcze pomiaru z GitHub runnera.
+- Raporty i kompletny lokalny cache są w prywatnym `/workspace/webforge-private/geofabrik-live-4d49xq6n/`, poza repozytorium i Cloudflare. Nie importowano firm i nie wygenerowano ich demonstracji. Dane unit testów są oddzielnie syntetyczne.
+
+**Projekt kolejnego etapu:**
+
+- README_GEOFABRIK.md opisuje adapter osm-pbf: strumieniowe pyosmium/osmium, istniejące reguły 30 branż, referencyjne węzły oraz poprawna geometria ways/relations i indeks na dysku. Parser ma dostać osobny benchmark; nie obiecano mu zmierzonego RSS samego downloadera.
+- Lokalne filtrowanie SQLite/RTree: branża, znormalizowane miasto/województwo i współrzędne. Granice wyciągu mogą mieć bufor i kompletne obiekty poza regionem; nie przypisujemy administracyjnej lokalizacji z samej nazwy pliku.
+- Filtr known_url oznacza adres w tagach, nie działające HTTP. Brak tagu/website=no pozostaje unknown, a confirmed_missing wymaga osobnego źródłowego dowodu. Opcjonalny audyt dostępności WWW ma własny dotychczasowy budżet i nie jest konieczny do wyszukiwania offline.
+- Obecny Store.ingest, punktacja, statusy, historia, źródła kontaktów, panel, eksporty i most generatora mają zostać wykorzystane. Zmiana OSM lub sam URL nie potwierdza aktywności. Modernizacja pozostaje niezależną kategorią.
+- Pobranie/odświeżenie wyciągu oddzielić od wielokrotnych zapytań do SQLite. Zacząć od ręcznego regionalnego odświeżenia np. tygodniowo; większa skala wymaga prywatnego magazynu i pomiarów. Później rozważyć regionalne .osc.gz z sekwencją replikacji. Nie wdrożono tego adaptera ani cyklicznych aktualizacji w tym zadaniu.
+
+**Testy i dokumentacja:**
+
+- 107/107 testów Python (17 nowych Geofabrik), testy panelu i 26 przypadków generatora przeszły. Dotychczasowe testy i izolacja Summary pozostały zachowane; pełny zestaw z odziedziczonym plikiem kontrolnym nie zmienił produkcyjnego Summary.
+- Nowe regresje: stream i granica bufora, Range bez fallbacku, checksum, HTML/błędny nagłówek, truncation i częściowe bajty, cache/304/uszkodzony cache, DNS/allowlist/redirect, budżety i Retry-After, brak dysku/deadline/lock, zmiana metadanych, brak odczytu skompresowanej odpowiedzi, prywatność raportu i odszyfrowane archiwum bez PBF. Symulacje nie są rzeczywistymi firmami.
+- Obie kopie workflow poprawnie parsują JSON/YAML, mają zgodne 10 pól, poprawny bash i fallback Python. Składnia modułów i git diff --check poprawne. Nie deklarowano actionlint ani wykonania nowego workflow przez GitHub.
+- Dodano README_GEOFABRIK.md z pomiarami, projektem filtrowania/cache i instrukcją iPada; zaktualizowano README, README_ACTIONS i bieżącą liczbę testów w instrukcji diagnostyki Overpass.
+
+**Następne kroki:** opublikować kod/audyt na feature i zweryfikować zapis oraz niezmieniony main/produkcję. Użytkownik kopiuje aktualny szablon do prywatnego runnera, wybiera nowy Run workflow z mode=geofabrik-test i geofabrik_profile=wielkopolskie-sample, zachowuje sekrety/magazyn; po sukcesie wybiera osobny wielkopolskie-full. Następnie porównać pomiary Actions i dopiero w kolejnym etapie wdrożyć adapter/filtrowanie PBF. Nie uruchomiono nowego Actions ani nie zmieniono prywatnego runnera za użytkownika.

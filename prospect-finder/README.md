@@ -1,5 +1,7 @@
 # WebForge Prospect Finder v0.3
 
+**Geofabrik:** nowy ręczny tryb `geofabrik-test` pobiera próbkę lub pełny PBF Wielkopolski/Opolskiego i mierzy czas/RSS bez importu firm i bez Overpass. Wynik rzeczywistego lokalnego testu pełnego pliku: 159490674 B, poprawne MD5, 33,80 s całego testu, około 24,3 MiB RSS. Instrukcja pierwszego runu na iPadzie oraz projekt filtrowania 30 branż i aktualizacji: [README_GEOFABRIK.md](README_GEOFABRIK.md). Importer PBF pozostaje kolejnym etapem.
+
 **Diagnostyka Overpass:** nowy tryb `diagnose` sprawdza status, minimalne zapytanie i jedną branżę w promieniu 2 km, bez importu firm. Rozróżnia etapy timeoutu i umożliwia ręczny wybór instancji. Dokładna instrukcja na iPada, wyniki prób oraz propozycja PBF dla Polski: [README_DIAGNOSTICS.md](README_DIAGNOSTICS.md).
 
 Osobny, lokalny moduł do wyszukiwania w zaimportowanych danych, oceny i ręcznej akceptacji firm. **Python 3.10+ i SQLite z biblioteki standardowej; bez instalacji pakietów i bez płatnych API.** Panel przeglądania eksportu działa w Safari na iPadzie.

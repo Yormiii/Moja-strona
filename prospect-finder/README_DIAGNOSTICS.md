@@ -45,7 +45,7 @@ Sprawdzono [zasady Private.coffee](https://overpass.private.coffee/) 2026-10-28:
 3. **Actions → WebForge Prospect Finder (manual) → Run workflow**. Pozostaw gałąź domyślną prywatnego runnera. Jeśli nie ma pól/przycisku, odśwież lub w Safari wybierz „Poproś o witrynę na komputer”.
 4. Ustaw **mode=diagnose**, **instance=overpass-de**, **region=poznan**, **industry=mechanik**. `limit=25` i `category=wszystkie` można pozostawić; są ignorowane przez sondy i nie uruchamiają pełnego wyszukiwania.
 5. Zachowaj istniejący `PROSPECT_DATA_KEY` i magazyn. Jeśli masz skonfigurowany trwały stan, wybierz **storage=private-repository**, podaj dotychczasowe `state_repository` i zachowaj token. Nie zmieniaj klucza. Konfiguracja magazynu: [README_ACTIONS.md](README_ACTIONS.md).
-6. Dla overpass-de pozostaw `accept_instance_terms` wyłączone. Kliknij **Run workflow** i otwórz nowy przebieg. Testy: **90 Python**. Summary ma pokazać trzy sondy i ich czasy/kategorie, nie klientów. Czerwony job oznacza co najmniej jedną nieudaną sondę; raport nadal pozwala diagnozować.
+6. Dla overpass-de pozostaw `accept_instance_terms` wyłączone. Kliknij **Run workflow** i otwórz nowy przebieg. Testy: **107 Python**. Summary ma pokazać trzy sondy i ich czasy/kategorie, nie klientów. Czerwony job oznacza co najmniej jedną nieudaną sondę; raport nadal pozwala diagnozować.
 7. Dla osobno wybranej próby Private.coffee przeczytaj zasady i uruchom nowy ręczny run z **mode=diagnose**, **instance=private-coffee**, zaznaczając **accept_instance_terms**. Zachowaj ten sam trwały magazyn; nie zmieniaj instancji przy aktywnej blokadzie/Retry-After/budżecie.
 8. Do analizy udostępniaj tylko kontrolowaną tabelę Summary. Nie przesyłaj sekretów, odszyfrowanej bazy ani surowego statusu. Cache i raport znajdują się też w istniejącej zaszyfrowanej paczce z retencją 1 dzień — nadal nie jest to trwała baza.
 
@@ -79,4 +79,4 @@ Adaptera PBF **nie wdrożono ani nie uruchomiono** w tym zadaniu. PBF przekracza
 
 ## Testy
 
-`python -m unittest discover -s prospect-finder/tests -v`: 90 przypadków, w tym sondy, rozróżnianie etapów w ścieżce urllib z symulowanymi socketami, TLS/proxy, limity/odroczenia między hostami, ręczny wybór i zasady, prywatność Summary oraz brak wywołania discovery i importu w trybie diagnostycznym. Dane testowe są syntetyczne i nie potwierdzają znalezienia rzeczywistych firm.
+`python -m unittest discover -s prospect-finder/tests -v`: 107 przypadków, w tym sondy, rozróżnianie etapów w ścieżce urllib z symulowanymi socketami, TLS/proxy, limity/odroczenia między hostami, ręczny wybór i zasady, prywatność Summary oraz brak wywołania discovery i importu w trybie diagnostycznym. Dane testowe są syntetyczne i nie potwierdzają znalezienia rzeczywistych firm.

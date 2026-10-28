@@ -169,7 +169,7 @@ class DiagnosticTests(unittest.TestCase):
 
     def test_workflow_manual_controls_and_all_inputs_are_quoted_not_executable_code(self):
         workflow=json.loads((ROOT/'workflow/prospect-finder.yml').read_text());inputs=workflow['on']['workflow_dispatch']['inputs']
-        self.assertEqual(inputs['mode']['options'],['diagnose','discover']);self.assertEqual(inputs['instance']['default'],'overpass-de');self.assertFalse(inputs['accept_instance_terms']['default'])
+        self.assertEqual(inputs['mode']['options'],['diagnose','discover','geofabrik-test']);self.assertEqual(inputs['instance']['default'],'overpass-de');self.assertFalse(inputs['accept_instance_terms']['default'])
         step=next(s for s in workflow['jobs']['discover']['steps'] if s['name']=='Discover and encrypt private results')
         self.assertIn('--mode "$PF_MODE"',step['run']);self.assertIn('--instance "$PF_INSTANCE"',step['run']);self.assertNotIn('${{',step['run'])
 

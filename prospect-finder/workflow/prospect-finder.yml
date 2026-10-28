@@ -49,12 +49,13 @@
           "default": ""
         },
         "mode": {
-          "description": "diagnose = 3 lekkie sondy bez importu firm; discover = wyszukiwanie",
+          "description": "diagnose = Overpass; discover = firmy; geofabrik-test = pobieranie PBF bez importu",
           "type": "choice",
           "required": true,
           "options": [
             "diagnose",
-            "discover"
+            "discover",
+            "geofabrik-test"
           ],
           "default": "discover"
         },
@@ -73,6 +74,18 @@
           "type": "boolean",
           "required": true,
           "default": false
+        },
+        "geofabrik_profile": {
+          "description": "Profil testu Geofabrik: próbka 1 MiB lub pełny wyciąg (maks. 256 MiB)",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "wielkopolskie-sample",
+            "wielkopolskie-full",
+            "opolskie-sample",
+            "opolskie-full"
+          ],
+          "default": "wielkopolskie-sample"
         }
       }
     }
@@ -123,9 +136,10 @@
             "PF_STATE_REPOSITORY": "${{ inputs.state_repository }}",
             "PF_MODE": "${{ inputs.mode }}",
             "PF_INSTANCE": "${{ inputs.instance }}",
-            "PF_ACCEPT_TERMS": "${{ inputs.accept_instance_terms }}"
+            "PF_ACCEPT_TERMS": "${{ inputs.accept_instance_terms }}",
+            "PF_GEOFABRIK_PROFILE": "${{ inputs.geofabrik_profile }}"
           },
-          "run": "extra=()\nif [ \"$PF_ACCEPT_TERMS\" = \"true\" ]; then extra+=(--accept-instance-terms); fi\npython prospect-finder/cloud_runner.py run --region \"$PF_REGION\" --industry \"$PF_INDUSTRY\" --limit \"$PF_LIMIT\" --category \"$PF_CATEGORY\" --storage \"$PF_STORAGE\" --state-repository \"$PF_STATE_REPOSITORY\" --workdir \"$RUNNER_TEMP/webforge-prospects\" --output \"$RUNNER_TEMP/webforge-output\" --mode \"$PF_MODE\" --instance \"$PF_INSTANCE\" \"${extra[@]}\""
+          "run": "extra=()\nif [ \"$PF_ACCEPT_TERMS\" = \"true\" ]; then extra+=(--accept-instance-terms); fi\npython prospect-finder/cloud_runner.py run --region \"$PF_REGION\" --industry \"$PF_INDUSTRY\" --limit \"$PF_LIMIT\" --category \"$PF_CATEGORY\" --storage \"$PF_STORAGE\" --state-repository \"$PF_STATE_REPOSITORY\" --workdir \"$RUNNER_TEMP/webforge-prospects\" --output \"$RUNNER_TEMP/webforge-output\" --mode \"$PF_MODE\" --instance \"$PF_INSTANCE\" \"${extra[@]}\" --geofabrik-profile \"$PF_GEOFABRIK_PROFILE\""
         },
         {
           "name": "Temporary encrypted result artifact",
