@@ -881,3 +881,12 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 - Zweryfikowano JSON/YAML obu workflow, ich zgodność, składnię bash nowego kroku, Python fallback i modułów oraz git diff --check. Nie deklarowano actionlint ani natywnej walidacji nowego runu GitHub.
 - Dodano README_DIAGNOSTICS.md z instrukcją krok po kroku dla iPada oraz odnośniki z README i README_ACTIONS. Wczesny błąd aplikacji poprawki dokumentacji nie zmienił plików; poprawiono kontekst i zapisano dokumentację. Początkowy przegląd kodu wykazał różnicę API HTTPSHandler w Pythonie 3.12; usunięto nieistniejący argument i potwierdzono ścieżkę transportu testem i rzeczywistymi sondami.
 - Następnie opublikować kod i audyt na feature, sprawdzić treść i niezmieniony main/produkcję. Użytkownik: skopiować aktualny szablon do prywatnego runnera → Actions / Run workflow → mode=diagnose, instance=overpass-de, region=poznan, industry=mechanik, zachowany magazyn/sekrety. Osobna próba Private.coffee wymaga przeczytania zasad i accept_instance_terms, bez omijania blokad.
+
+### 2026-10-28 — publikacja sond Overpass potwierdzona
+
+- Kod, konfigurację, testy, workflow i dokumentację opublikowano w commicie [42cc8db](https://github.com/Yormiii/Moja-strona/commit/42cc8db74acd6f07a7560f5cd3e74304f914dacf) na [feature/demo-generator](https://github.com/Yormiii/Moja-strona/tree/feature/demo-generator).
+- Zweryfikowano sumy blobów wszystkich 12 plików względem lokalnej treści. Pozostałe 54 pliki zachowały SHA, w tym produkcja, formularze, generator, panel i silnik punktacji.
+- Main nadal wskazuje `8f07e41bdfad0d491b4d617c8a23a25a9465bb72`. Nie modyfikowano prywatnego runnera, jego sekretów ani magazynu; nie tworzono PR.
+- Ostateczne testy: 90 Python, panel i generator — przeszły. YAML/JSON, zgodność kopii, bash i składnia Python zweryfikowane. Testy nie zmieniły odziedziczonego pliku Summary.
+- Nie uruchomiono nowego GitHub Actions. Rzeczywiste lokalne sondy miały błędy odczytu/502/DNS opisane wyżej, bez importu firm. Żadne dane rzeczywistych klientów, bazy, cache ani sekrety nie trafiły do repozytorium/Cloudflare.
+- Instrukcja kolejnego działania użytkownika: [README_DIAGNOSTICS.md](https://github.com/Yormiii/Moja-strona/blob/feature/demo-generator/prospect-finder/README_DIAGNOSTICS.md) — aktualizacja workflow w prywatnym runnerze z iPada, nowy Run workflow z mode=diagnose, overpass-de, poznan, mechanik oraz zachowanym magazynem. Opcjonalna próba Private.coffee wyłącznie ręczna i zgodnie z zasadami. Adapter PBF pozostaje propozycją następnego etapu.
