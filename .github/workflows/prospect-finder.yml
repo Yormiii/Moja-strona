@@ -47,6 +47,32 @@
           "type": "string",
           "required": false,
           "default": ""
+        },
+        "mode": {
+          "description": "diagnose = 3 lekkie sondy bez importu firm; discover = wyszukiwanie",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "diagnose",
+            "discover"
+          ],
+          "default": "discover"
+        },
+        "instance": {
+          "description": "Jedna instancja na cały przebieg, bez automatycznego failover",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "overpass-de",
+            "private-coffee"
+          ],
+          "default": "overpass-de"
+        },
+        "accept_instance_terms": {
+          "description": "Zapoznano się z zasadami operatora (wymagane dla private-coffee); nie zmieniaj instancji w celu obejścia limitu/blokady",
+          "type": "boolean",
+          "required": true,
+          "default": false
         }
       }
     }
@@ -94,9 +120,12 @@
             "PF_LIMIT": "${{ inputs.limit }}",
             "PF_CATEGORY": "${{ inputs.category }}",
             "PF_STORAGE": "${{ inputs.storage }}",
-            "PF_STATE_REPOSITORY": "${{ inputs.state_repository }}"
+            "PF_STATE_REPOSITORY": "${{ inputs.state_repository }}",
+            "PF_MODE": "${{ inputs.mode }}",
+            "PF_INSTANCE": "${{ inputs.instance }}",
+            "PF_ACCEPT_TERMS": "${{ inputs.accept_instance_terms }}"
           },
-          "run": "python prospect-finder/cloud_runner.py run --region \"$PF_REGION\" --industry \"$PF_INDUSTRY\" --limit \"$PF_LIMIT\" --category \"$PF_CATEGORY\" --storage \"$PF_STORAGE\" --state-repository \"$PF_STATE_REPOSITORY\" --workdir \"$RUNNER_TEMP/webforge-prospects\" --output \"$RUNNER_TEMP/webforge-output\""
+          "run": "extra=()\nif [ \"$PF_ACCEPT_TERMS\" = \"true\" ]; then extra+=(--accept-instance-terms); fi\npython prospect-finder/cloud_runner.py run --region \"$PF_REGION\" --industry \"$PF_INDUSTRY\" --limit \"$PF_LIMIT\" --category \"$PF_CATEGORY\" --storage \"$PF_STORAGE\" --state-repository \"$PF_STATE_REPOSITORY\" --workdir \"$RUNNER_TEMP/webforge-prospects\" --output \"$RUNNER_TEMP/webforge-output\" --mode \"$PF_MODE\" --instance \"$PF_INSTANCE\" \"${extra[@]}\""
         },
         {
           "name": "Temporary encrypted result artifact",

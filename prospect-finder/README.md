@@ -1,5 +1,7 @@
 # WebForge Prospect Finder v0.3
 
+**Diagnostyka Overpass:** nowy tryb `diagnose` sprawdza status, minimalne zapytanie i jedną branżę w promieniu 2 km, bez importu firm. Rozróżnia etapy timeoutu i umożliwia ręczny wybór instancji. Dokładna instrukcja na iPada, wyniki prób oraz propozycja PBF dla Polski: [README_DIAGNOSTICS.md](README_DIAGNOSTICS.md).
+
 Osobny, lokalny moduł do wyszukiwania w zaimportowanych danych, oceny i ręcznej akceptacji firm. **Python 3.10+ i SQLite z biblioteki standardowej; bez instalacji pakietów i bez płatnych API.** Panel przeglądania eksportu działa w Safari na iPadzie.
 
 Wersja v0.2 dodaje adapter **OpenStreetMap/Overpass**, wyszukiwanie rzeczywistych firm i ostrożne sprawdzanie ich stron głównych. Dotychczasowe adaptery `test-json` i `public-json`, SQLite, punktacja i panel pozostają dostępne. Nie ma wysyłki, publikacji demo rzeczywistych firm, Telegrama ani płatnych API. Interfejs `SourceAdapter.search()` umożliwia dodawanie kolejnych źródeł; pobieranie i audyt są oddzielone od bazy i punktacji.

@@ -21,5 +21,10 @@
   "protected_hosts": [
     "webforge.com.pl",
     "www.webforge.com.pl"
+  ],
+  "connect_timeout_seconds": 8,
+  "overpass_hosts": [
+    "overpass-api.de",
+    "overpass.private.coffee"
   ]
 }

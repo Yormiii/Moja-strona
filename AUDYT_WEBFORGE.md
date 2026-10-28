@@ -828,3 +828,56 @@ Katalog wynikowy: `demo-generator/generated/index.html`. Własna lista może zaw
 - Weryfikacja końcowa: 73 testy Python, 5 panelu i 26 przypadków generatora przeszły; poprawny YAML/JSON i zgodne kopie workflow; cały zestaw Python nie zmienił odziedziczonego pliku Summary.
 - Nie uruchomiono nowego GitHub Actions. Pierwszy rzeczywisty run pozostaje failed/0 firm, a lokalna próba poprawki dns_error/0 firm/0 prób HTTP. Nie zadeklarowano sukcesu Overpass na podstawie testów syntetycznych.
 - Następne działanie użytkownika: skopiować aktualny szablon workflow do prywatnego runnera i wybrać nowy Run workflow (poznan/all/25/wszystkie), zachowując sekrety/magazyn. Podstawowa poprawka biblioteki działa także z dotychczasowym workflow, bo checkout pobiera aktualną feature. Nowe Summary pozwoli rozstrzygnąć kategorię błędu źródła bez ujawniania firm i sekretów.
+
+### 2026-10-28 — lekkie sondy Overpass, etapy timeoutu i ręczny wybór instancji
+
+**Zakres:** kontynuacja `feature/demo-generator`, bez zmiany main i produkcyjnego WebForge. Nie przebudowano generatora, panelu, punktacji ani modelu prospects. Nie ma wysyłki, automatycznych demo, płatnych API ani harmonogramu.
+
+**Zweryfikowany drugi run:** [40604723800](https://github.com/Yormiii/webforge-prospect-runner/actions/runs/40604723800), job 122541263168. Odczyt logu potwierdził 73 testy, failed/0 rzeczywistych firm, 3 timeouty bez statusu HTTP: 35263, 35245 i 35285 ms. Zapytanie: 8 klauzul, 901 bajtów, promień 30 km. Stary kod nie rozróżniał etapów timeoutu, więc nie przypisano ich wstecz połączeniu ani wykonaniu zapytania.
+
+**Implementacja:**
+
+- Dodano `diagnose.py` i konfigurację `config/overpass.json`. Tryb `diagnose` nie wywołuje discovery, nie importuje rekordów firm, nie audytuje WWW i nie generuje demo. Używa istniejącego wrappera szyfrowania i prywatnego stanu.
+- Sonda availability: GET `/api/status`. Odpowiedź 200 oznacza tylko dostępność endpointu/gateway; nie dowodzi działania interpretera. Surowa treść statusu nie trafia do Summary.
+- Sonda minimal_query: POST z pojedynczym odczytem node(1), serwerowym timeoutem 5 s, pamięcią 8 MiB i `out count`; 57 bajtów zapytania.
+- Sonda industry_small_area: jedna branża, domyślnie mechanik, maksymalnie 2 km od środka regionu Poznań, `out count`, timeout 5 s; domyślnie 116 bajtów. `industry=all` w diagnostyce wybiera mechanika, nie 30 branż. Inny pojedynczy identyfikator jest obsługiwany.
+- Liczby z sond są obiektami OSM, nie liczbą klientów. Parser przyjmuje tylko poprawne liczbowe `out count`, odrzuca częściowe dane/remark/błędne odpowiedzi. Publiczny filtr dodatkowo zeruje do nieustalonych wszystkie liczniki firm w trybie diagnostycznym, nawet gdyby pojawiły się w wejściowym raporcie.
+- Summary pokazuje trzy sondy, wynik passed/failed/skipped, bezpieczną kategorię, HTTP jeśli otrzymano, liczbę obiektów i tabelę czasów/prób/cache. Nie ujawnia URL firm, kontaktów, metadanych statusu, treści odpowiedzi ani sekretów. Izolacja testowego Summary została zachowana.
+
+**Rozróżnienie etapów i ochrona sieci:**
+
+- Transport urllib instrumentuje własne połączenia HTTP/HTTPS: connect_timeout (zestawienie TCP/proxy/TLS), write_timeout (wysyłka), read_timeout (nagłówki lub treść). Nie deklarujemy rozdzielenia TCP, tunelu i TLS wewnątrz etapu połączenia.
+- Potwierdzony timeout wykonania po stronie Overpass nadal wymaga `remark` i kategorii overpass_timeout. Odczyt timeout nie rozstrzyga, czy zawiniła kolejka, obliczenia, gateway czy trasa sieciowa. Nieznany timeout starego/wstrzykniętego transportu pozostaje timeout.
+- Limit zestawienia wynosi 8 s, odczyt sondy 15 s, pełnego Overpass nadal 35 s, WWW 15 s. To timeouty operacji socket; czas DNS, opóźnienia limitera i narzut mogą wydłużyć cały pomiar.
+- Zachowano domyślne proxy, CA, TLS i kontrolę hosta, ochronę URL/DNS/prywatnych adresów, brak automatycznych przekierowań oraz ochronę produkcyjnego hosta. Nie wyłączano certyfikatów i nie obchodzono proxy.
+- Maksymalnie 3 próby diagnostyczne, po jednej na sondę, bez retry. Minimum 10 s między Overpass, odpowiedź maks. 64 KiB, cache sond 5 minut. Przy 429/odmowie dostępu/odroczeniu/budżecie dalsze sondy są pomijane. Zwykły błąd statusu nie uniemożliwia niezależnej sondy interpretera.
+- Zachowano 10 żądań Overpass dziennie, budżety pobierania i zapytań oraz Retry-After. Obie skonfigurowane instancje współdzielą limit i odroczenie w tej samej SQLite, także po ręcznej zmianie hosta. Nie dodano nowego schematu cache. Ciągłość między runami wymaga istniejącego prywatnego backendu; temporary nadal nie zachowuje stanu między runami i nie służy omijaniu limitów.
+
+**Instancje:**
+
+- Domyślna pozostaje overpass-de. Konfiguracja obejmuje także private-coffee; adresów nie można wprowadzać dowolnie przez formularz. Wybór jest jawny, tylko jeden na przebieg. Nie ma automatycznego failover ani rotacji po błędzie.
+- Sprawdzono [zasady operatora Private.coffee](https://overpass.private.coffee/) i [zasady overpass-api.de](https://dev.overpass-api.de/overpass-doc/en/preface/commons.html). Krótki opis warunków i linki są w README_DIAGNOSTICS.md. Nasze limity obowiązują niezależnie od deklaracji operatora.
+- Workflow dodał pola mode (discover/diagnose), instance i accept_instance_terms. Dla Private.coffee wymagane jest jawne zaznaczenie zapoznania się z zasadami. Brak zaznaczenia kończy preflight przed HTTP. Ręcznego wyboru nie wolno używać do obchodzenia blokad lub budżetów.
+- Obie kopie workflow są identyczne, pozostają ręczne, z przypiętymi akcjami, contents:read, cytowanymi wejściami i dotychczasowym szyfrowanym artefaktem. Zmiana formularza wymaga skopiowania szablonu do prywatnego repozytorium runnera; nie modyfikowano go teraz za użytkownika.
+
+**Rzeczywiste próby nowych sond — lokalny wykonawca, nie GitHub Actions:**
+
+- Po włączeniu dostępu sieciowego dla polecenia wykonano komplet sond overpass-de z zachowanym proxy: availability read_timeout 15426 ms; minimal_query read_timeout 15380 ms; industry_small_area HTTP 502 po 777 ms. Trzy próby HTTP.
+- Osobno, jawnie wybrano Private.coffee po sprawdzeniu zasad, na tej samej bazie liczników: availability read_timeout 16025 ms; minimal_query read_timeout 15829 ms; industry_small_area dns_error przed HTTP. Dwie próby HTTP, trzecia sonda nie dotarła do transportu.
+- Łącznie pięć prób, bez ponowień, automatycznego przełączania, zwiększenia limitu lub obchodzenia blokady. Raporty/cache są poza repozytorium: `/workspace/webforge-private/overpass-probes-zjh8p_rq/`. Nie importowano żadnych firm i nie przedstawiono obiektów testowych jako rzeczywistych klientów.
+- Wcześniejsze lokalne próby bez rozszerzonego dostępu sieciowego kończyły się DNS; obecne wyniki pokazują również timeouty odczytu i 502. Błąd już przy statusie i minimalnym odczycie podważa założenie, że jedyną przyczyną jest ciężkie zapytanie 30 branż. Wspólna trasa/proxy/DNS wykonawcy także może być problemem. Nie potwierdzono globalnej awarii operatorów ani sukcesu z GitHub runnera.
+- Nowego GitHub Actions runu nie uruchomiono. Celem kolejnego runu są trzy sondy, a nie deklarowanie pozyskania 20–30 firm.
+
+**Alternatywa do przyszłej skali Polski:**
+
+- Zaproponowano wyciągi OSM PBF [Geofabrik Polska](https://download.geofabrik.de/europe/poland.html) i [Wielkopolska](https://download.geofabrik.de/europe/poland/wielkopolskie.html), zamiast stałego polegania na publicznym interpreterze. Rozmiary w dniu sprawdzenia: ok. 2 GB / 152 MB. Pozostają zasady ODbL/atrybucji i ograniczenia danych OSM.
+- Plan osobnego adaptera, filtrowania strumieniowego, prawidłowej geometrii ways/relations, istniejącej deduplikacji i prywatnej SQLite opisano w README_DIAGNOSTICS.md. Pobieranie wyciągu ma być oddzielone od wyszukiwania; zacząć regionalnie, potem rozszerzać.
+- PBF przekracza obecny budżet HTTP 50 MiB i snapshot 20 MiB; wymaga osobnego jawnego budżetu importera oraz prywatnego przechowywania. Nie poluzowano limitów Overpass, nie pobrano PBF i nie wdrożono teraz adaptera ani płatnego magazynu. Dane są darmowe, ale runner/dysk/baza muszą mieścić się w bezpłatnym przydziale.
+
+**Testy, dokumentacja, następne kroki:**
+
+- 90/90 testów Python (17 nowych względem 73), testy panelu i 26 przypadków generatora przeszły. Nowe regresje pokrywają trzy sondy, prawidłowe zero obiektów, rozróżnienie etapów, ścieżkę rzeczywistego urllib z mockowanym socketem, zachowanie TLS, 429/odmowę, cache, limity/odroczenia wspólne dla hostów, ręczne zasady/wybór, ochronę URL, prywatność i brak wywołania discovery/importu.
+- Cały zestaw uruchomiono z plikiem kontrolnym GITHUB_STEP_SUMMARY; pozostał niezmieniony. Firmy i odpowiedzi unit testów są syntetyczne i nie są wynikiem rzeczywistego wyszukiwania.
+- Zweryfikowano JSON/YAML obu workflow, ich zgodność, składnię bash nowego kroku, Python fallback i modułów oraz git diff --check. Nie deklarowano actionlint ani natywnej walidacji nowego runu GitHub.
+- Dodano README_DIAGNOSTICS.md z instrukcją krok po kroku dla iPada oraz odnośniki z README i README_ACTIONS. Wczesny błąd aplikacji poprawki dokumentacji nie zmienił plików; poprawiono kontekst i zapisano dokumentację. Początkowy przegląd kodu wykazał różnicę API HTTPSHandler w Pythonie 3.12; usunięto nieistniejący argument i potwierdzono ścieżkę transportu testem i rzeczywistymi sondami.
+- Następnie opublikować kod i audyt na feature, sprawdzić treść i niezmieniony main/produkcję. Użytkownik: skopiować aktualny szablon do prywatnego runnera → Actions / Run workflow → mode=diagnose, instance=overpass-de, region=poznan, industry=mechanik, zachowany magazyn/sekrety. Osobna próba Private.coffee wymaga przeczytania zasad i accept_instance_terms, bez omijania blokad.

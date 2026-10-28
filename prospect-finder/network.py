@@ -17,11 +17,20 @@ import urllib.error
 import urllib.request
 from urllib.parse import urlsplit, urlunsplit
 from dataclasses import dataclass
+from functools import partial
 
 from finder import config, private_path
 
 
-ERROR_CATEGORIES=frozenset(('network_other','budget_exceeded','dns_error','url_rejected','protected_host','method_rejected','timeout','tls_error','connection_error','proxy_error','response_too_large','unsupported_encoding','retry_after_deferred','http_429','http_5xx','http_4xx','http_other','invalid_json','overpass_timeout','overpass_memory_limit','overpass_runtime_error','invalid_payload','invalid_data'))
+ERROR_CATEGORIES=frozenset(('network_other','budget_exceeded','dns_error','url_rejected','protected_host','method_rejected','timeout','connect_timeout','read_timeout','write_timeout','tls_error','connection_error','proxy_error','response_too_large','unsupported_encoding','retry_after_deferred','http_429','http_5xx','http_4xx','http_other','invalid_json','overpass_timeout','overpass_memory_limit','overpass_runtime_error','invalid_payload','invalid_data'))
+
+
+def instance_settings(name='overpass-de',accept_terms=False):
+    instances=config('overpass')['instances']
+    if name not in instances:raise ValueError('Nieznana instancja Overpass')
+    entry=instances[name]
+    if entry.get('requires_terms_acceptance') and accept_terms is not True:raise ValueError('Wymagane zapoznanie się z zasadami operatora')
+    return {'overpass_endpoint':entry['endpoint']}
 
 
 class NetworkError(Exception):
@@ -113,9 +122,45 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl): return None
 
 
-def transport(url, method, data, headers, timeout, max_bytes):
+class PhaseConnection:
+    """Instrument actual urllib connections, including the inherited proxy/TLS path."""
+    def __init__(self,*args,connect_timeout=8,**kwargs):
+        self.read_timeout=kwargs.get('timeout',35)
+        kwargs['timeout']=min(self.read_timeout,connect_timeout)
+        super().__init__(*args,**kwargs)
+
+    def connect(self):
+        try:super().connect()
+        except TimeoutError as exc:raise NetworkError('Timeout zestawiania połączenia/proxy/TLS',category='connect_timeout') from exc
+        self.sock.settimeout(self.read_timeout)
+
+    def request(self,*args,**kwargs):
+        try:return super().request(*args,**kwargs)
+        except TimeoutError as exc:raise NetworkError('Timeout wysyłania żądania',category='write_timeout') from exc
+
+    def getresponse(self):
+        try:return super().getresponse()
+        except TimeoutError as exc:raise NetworkError('Timeout oczekiwania na nagłówki HTTP',category='read_timeout') from exc
+
+
+class PhaseHTTPConnection(PhaseConnection,http.client.HTTPConnection):pass
+class PhaseHTTPSConnection(PhaseConnection,http.client.HTTPSConnection):pass
+
+
+class PhaseHTTPHandler(urllib.request.HTTPHandler):
+    def __init__(self,connect_timeout):super().__init__();self.connect_timeout=connect_timeout
+    def http_open(self,req):return self.do_open(partial(PhaseHTTPConnection,connect_timeout=self.connect_timeout),req)
+
+
+class PhaseHTTPSHandler(urllib.request.HTTPSHandler):
+    def __init__(self,connect_timeout):super().__init__();self.connect_timeout=connect_timeout
+    def https_open(self,req):
+        return self.do_open(partial(PhaseHTTPSConnection,connect_timeout=self.connect_timeout),req,context=self._context)
+
+
+def transport(url, method, data, headers, timeout, max_bytes,*,connect_timeout=8):
     # build_opener preserves environment ProxyHandler and system CA/TLS verification.
-    opener = urllib.request.build_opener(NoRedirect())
+    opener = urllib.request.build_opener(NoRedirect(),PhaseHTTPHandler(connect_timeout),PhaseHTTPSHandler(connect_timeout))
     request = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
         response = opener.open(request, timeout=timeout)
@@ -126,14 +171,15 @@ def transport(url, method, data, headers, timeout, max_bytes):
         if encoding not in ('', 'identity'): raise NetworkError('Nieobsługiwane kodowanie odpowiedzi',category='unsupported_encoding')
         size = response.headers.get('Content-Length')
         if size and int(size) > max_bytes: raise NetworkError('Odpowiedź przekracza limit wielkości',category='response_too_large')
-        body = response.read(max_bytes + 1)
+        try:body = response.read(max_bytes + 1)
+        except TimeoutError as exc:raise NetworkError('Timeout odczytu treści HTTP',category='read_timeout',http_status=response.status) from exc
         if len(body) > max_bytes: raise NetworkError('Odpowiedź przekracza limit wielkości',category='response_too_large')
         return Response(response.status, {k.lower(): v for k,v in response.headers.items()}, body, time.time())
 
 
 class HttpClient:
     def __init__(self, cache_path, *, settings=None, wire=transport, clock=time.time, sleep=time.sleep, resolver=socket.getaddrinfo):
-        self.cfg = {**config('network'), **(settings or {})}; self.wire = wire; self.clock = clock; self.sleep = sleep; self.resolver = resolver
+        self.cfg = {**config('network'), **(settings or {})}; self.wire = partial(transport,connect_timeout=self.cfg['connect_timeout_seconds']) if wire is transport else wire; self.clock = clock; self.sleep = sleep; self.resolver = resolver
         path = private_path(cache_path); path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.db = sqlite3.connect(path)
         self.db.executescript('''
@@ -159,9 +205,14 @@ class HttpClient:
         try:
             row = self.db.execute('SELECT count,next_at FROM limits WHERE day=? AND host=?',(day,host)).fetchone() or (0,0)
             next_at=self.db.execute('SELECT COALESCE(MAX(next_at),0) FROM limits WHERE host=?',(host,)).fetchone()[0]
+            overpass_count=row[0]
+            if overpass:
+                hosts=sorted(set(self.cfg['overpass_hosts'])|{host});marks=','.join('?' for _ in hosts)
+                overpass_count=self.db.execute(f'SELECT COALESCE(SUM(count),0) FROM limits WHERE day=? AND host IN ({marks})',(day,*hosts)).fetchone()[0]
+                next_at=self.db.execute(f'SELECT COALESCE(MAX(next_at),0) FROM limits WHERE host IN ({marks})',hosts).fetchone()[0]
             total = self.db.execute('SELECT COALESCE(SUM(count),0),COALESCE(SUM(bytes),0) FROM limits WHERE day=?',(day,)).fetchone()
             reserved = self.cfg['overpass_max_body_bytes'] if overpass else self.cfg['max_body_bytes']
-            if total[0] >= self.cfg['max_requests_per_day'] or total[1]+reserved > self.cfg['max_download_bytes_per_day'] or overpass and row[0] >= self.cfg['overpass_requests_per_day']:
+            if total[0] >= self.cfg['max_requests_per_day'] or total[1]+reserved > self.cfg['max_download_bytes_per_day'] or overpass and overpass_count >= self.cfg['overpass_requests_per_day']:
                 raise BudgetExceeded('Dzienny limit zapytań lub pobierania')
             delay = max(0,next_at-now)
             if delay > self.cfg['max_wait_seconds']: raise BudgetExceeded('Odroczenie dłuższe niż limit oczekiwania')
@@ -213,10 +264,12 @@ class HttpClient:
                 response = self.wire(url,method,data,{'User-Agent':self.cfg['user_agent'],'Accept-Encoding':'identity','Accept':'application/json' if overpass else 'text/html,text/plain;q=0.9,*/*;q=0.1','Content-Type':'application/x-www-form-urlencoded' if data else 'text/plain'},self.cfg['overpass_timeout_seconds'] if overpass else self.cfg['timeout_seconds'],self.cfg['overpass_max_body_bytes'] if overpass else self.cfg['max_body_bytes'])
             except (OSError, ValueError, urllib.error.URLError, NetworkError,http.client.HTTPException) as exc:
                 category=error_category(exc)
-                self._event(scope,'error',category,attempt=attempt+1,elapsed_ms=max(0,int((self.clock()-started)*1000)))
+                numbers={'attempt':attempt+1,'elapsed_ms':max(0,int((self.clock()-started)*1000))}
+                if getattr(exc,'http_status',None) is not None:numbers['http_status']=exc.http_status
+                self._event(scope,'error',category,**numbers)
                 if category in ('response_too_large','unsupported_encoding'):raise
                 if attempt + 1 < self.cfg['max_attempts']: self._retry_delay(attempt); continue
-                raise NetworkError('Błąd połączenia: '+type(exc).__name__,category=category) from exc
+                raise NetworkError('Błąd połączenia: '+type(exc).__name__,category=category,http_status=getattr(exc,'http_status',None)) from exc
             self._event(scope,'response','ok' if response.status<400 else http_category(response.status),http_status=response.status,attempt=attempt+1,elapsed_ms=max(0,int((self.clock()-started)*1000)),response_bytes=len(response.body))
             with self.db:
                 self.db.execute('UPDATE limits SET bytes=bytes+? WHERE day=? AND host=?',(len(response.body)-reserved,day,host))

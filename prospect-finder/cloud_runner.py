@@ -20,7 +20,8 @@ from urllib.parse import quote
 
 from finder import Store, config, industries, private_path
 from live import discover_run, region_config
-from network import safe_diagnostics
+from network import safe_diagnostics, HttpClient, instance_settings
+from diagnose import diagnostic_settings, diagnose_run, safe_probes
 
 SOURCE_REPO='Yormiii/Moja-strona'
 STATE_PATH='state/prospect-state.tar.gpg'
@@ -153,9 +154,13 @@ def public_summary(report,storage,restored,errors):
     counts={k:report.get(k) if type(report.get(k)) is int and report[k]>=0 else None for k in fields}
     top=[{'score':r['score'],'coverage_percent':r['coverage_percent']} for r in report.get('top_scores',[]) if type(r.get('score')) is int and 0<=r['score']<=100 and type(r.get('coverage_percent')) is int and 0<=r['coverage_percent']<=100]
     outcomes={k:v for k,v in report.get('outcomes',{}).items() if k in ('no_url','unknown','reachable','http_error','access_limited','robots_disallowed','network_error','budget_exceeded') and type(v) is int and v>=0}
-    allowed_errors={'preflight_failed','state_restore_failed','discovery_failed','packaging_failed','state_save_failed','discovery_blocked_or_failed'}
+    allowed_errors={'preflight_failed','state_restore_failed','discovery_failed','diagnostic_failed','packaging_failed','state_save_failed','discovery_blocked_or_failed','diagnostic_blocked_or_failed'}
     safe_errors=[e if e in allowed_errors else 'runner_failed' for e in errors]
-    return {'version':3,'outcome':report.get('outcome') if report.get('outcome') in ('completed','blocked_or_failed') else 'not_started','storage':storage if storage in ('temporary','private-repository') else 'invalid','state_restored':bool(restored),**counts,'top_scores':top,'website_outcomes':outcomes,'errors':safe_errors,'diagnostics':safe_diagnostics(report.get('diagnostics',{})),'limitations':['Próbka OSM wymaga weryfikacji; brak WWW nie potwierdza braku strony.','Pełne rekordy i błędy są tylko w zaszyfrowanej paczce.','Artefakty są tymczasowe; ciągłość deduplikacji wymaga trybu private-repository.']}
+    if report.get('mode')=='diagnose':
+        counts={k:v if k in ('network_requests','cache_hits') else None for k,v in counts.items()};top=[];outcomes={}
+    instance=report.get('instance')
+    instance=instance if isinstance(instance,str) and instance in config('overpass')['instances'] else 'overpass-de'
+    return {'version':3,'mode':'diagnose' if report.get('mode')=='diagnose' else 'discover','instance':instance,'probes':safe_probes(report.get('probes',[])),'outcome':report.get('outcome') if report.get('outcome') in ('completed','blocked_or_failed') else 'not_started','storage':storage if storage in ('temporary','private-repository') else 'invalid','state_restored':bool(restored),**counts,'top_scores':top,'website_outcomes':outcomes,'errors':safe_errors,'diagnostics':safe_diagnostics(report.get('diagnostics',{})),'limitations':['Próbka OSM wymaga weryfikacji; brak WWW nie potwierdza braku strony.','Pełne rekordy i błędy są tylko w zaszyfrowanej paczce.','Artefakty są tymczasowe; ciągłość deduplikacji wymaga trybu private-repository.']}
 
 
 def markdown(summary):
@@ -163,6 +168,11 @@ def markdown(summary):
     lines=['# WebForge Prospect Finder v0.3','',f"Stan: `{summary['outcome']}`",f"Magazyn: `{summary['storage']}`; odtworzono stan: `{summary['state_restored']}`",'','| Miara | Liczba |','|---|---:|']
     for key,label in labels.items():lines.append(f"| {label} | {summary[key] if summary[key] is not None else 'nieustalono'} |")
     lines+=['','Najwyższe wyniki (bez danych firm): '+(', '.join(str(x['score'])+'/100' for x in summary['top_scores']) or 'brak danych'),'','Wyniki kontroli WWW: '+(', '.join(f'{k}: {v}' for k,v in summary['website_outcomes'].items()) or 'nieustalono'),'', 'Błędy: '+(', '.join(summary['errors']) or 'brak zgłoszonych'),'',*['- '+x for x in summary['limitations']]]
+    if summary['mode']=='diagnose':
+        lines=['# WebForge — diagnostyka Overpass','',f"Stan: `{summary['outcome']}`; instancja: `{summary['instance']}`",f"Magazyn: `{summary['storage']}`; odtworzono stan: `{summary['state_restored']}`",'', 'Nie wyszukiwano ani nie importowano rekordów firm. Wynik out count to obiekty OSM, nie znalezieni klienci.','', '| Sonda | Wynik | Kategoria | HTTP | Obiekty OSM |','|---|---|---|---:|---:|']
+        for p in summary['probes']:lines.append('| '+' | '.join(str(p.get(k,'—')) for k in ('name','outcome','category','http_status','matched_osm_objects'))+' |')
+        lines+=['',f"Próby HTTP: {summary['network_requests']}; cache: {summary['cache_hits']}.",'','Połączenie obejmuje TCP/proxy/TLS. Timeout odczytu oznacza brak nagłówków/treści; nie rozstrzyga kolejki i obliczeń serwera. Timeout wykonania jest potwierdzony tylko przez remark Overpass.','', 'Błędy: '+(', '.join(summary['errors']) or 'brak zgłoszonych')]
+    else:lines.insert(4,f"Instancja: `{summary['instance']}`")
     diagnostic=summary['diagnostics']
     if diagnostic['failure']:
         lines+=['', 'Kategoria przerwania: `'+diagnostic['failure']+'`.']
@@ -178,7 +188,7 @@ def markdown(summary):
 def run_cloud(args,discover=discover_run,*,summary_path=None):
     # Library calls/tests never inherit the runner's production summary sink.
     # Only the real CLI explicitly opts into GITHUB_STEP_SUMMARY in main().
-    report={};errors=[];restored=False;store=None;state=None;stage='preflight';success=False
+    report={'mode':getattr(args,'mode','discover'),'instance':getattr(args,'instance','overpass-de')};errors=[];restored=False;store=None;client=None;state=None;stage='preflight';success=False
     output=private_path(args.output);work=private_path(args.workdir)
     output.mkdir(parents=True,exist_ok=True,mode=0o700);work.mkdir(parents=True,exist_ok=True,mode=0o700)
     os.chmod(work,0o700);os.chmod(output,0o700)
@@ -186,6 +196,9 @@ def run_cloud(args,discover=discover_run,*,summary_path=None):
         key=key_from_env();region_config(args.region)
         if not shutil.which('gpg'):raise ValueError('Wymagany GnuPG')
         industry=None if args.industry=='all' else args.industry
+        mode=getattr(args,'mode','discover');instance=getattr(args,'instance','overpass-de')
+        if mode not in ('discover','diagnose'):raise ValueError('Nieprawidłowy tryb')
+        settings=(diagnostic_settings if mode=='diagnose' else instance_settings)(instance,getattr(args,'accept_instance_terms',False))
         if industry and industry not in industries() or not 1<=args.limit<=30:raise ValueError('Nieprawidłowe parametry')
         if args.storage not in ('temporary','private-repository'):raise ValueError('Nieprawidłowy magazyn')
         if any(work.iterdir()) or (output/'results.tar.gpg').exists():raise ValueError('Wymagane puste katalogi przebiegu')
@@ -197,12 +210,18 @@ def run_cloud(args,discover=discover_run,*,summary_path=None):
                 plain=output/'restored.tar.gz';crypt(encrypted,plain,key,decrypt=True)
                 try:restore_state(plain,work);restored=True
                 finally:plain.unlink(missing_ok=True);encrypted.unlink(missing_ok=True)
-        stage='discovery';store=Store(work/'prospects.sqlite3')
+        stage='diagnostic' if mode=='diagnose' else 'discovery';store=Store(work/'prospects.sqlite3')
+        client=HttpClient(work/'live/network-cache.sqlite3',settings=settings)
         # A future discovery implementation must not leak raw stdout to public logs.
         with redirect_stdout(io.StringIO()),redirect_stderr(io.StringIO()):
-            report=discover(store,region=args.region,limit=args.limit,industry=industry,category=args.category,workdir=work/'live')
+            if mode=='diagnose':
+                report=diagnose_run(client,instance=instance,region=args.region,industry=industry or config('overpass')['diagnostic']['industry'])
+                (work/'live/diagnostic-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf8')
+            else:report=discover(store,region=args.region,limit=args.limit,industry=industry,category=args.category,workdir=work/'live',client=client)
+        report['mode']=mode;report['instance']=instance
+        client.close();client=None
         store.close();store=None
-        if report['outcome']!='completed':errors.append('discovery_blocked_or_failed')
+        if report['outcome']!='completed':errors.append('diagnostic_blocked_or_failed' if mode=='diagnose' else 'discovery_blocked_or_failed')
         stage='packaging'
         with tempfile.TemporaryDirectory(prefix='webforge-bundle-',dir=output) as temp:
             plain=Path(temp)/'results.tar.gz';archive_tree(work,plain);crypt(plain,output/'results.tar.gpg',key)
@@ -215,6 +234,7 @@ def run_cloud(args,discover=discover_run,*,summary_path=None):
         # Never log exception details: they can contain a URL, token or record.
         errors.append(stage+'_failed')
     finally:
+        if client:client.close()
         if store:store.close()
     summary=public_summary(report,args.storage,restored,errors)
     if errors:summary['outcome']='failed'
@@ -231,6 +251,7 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description='Cloud wrapper: szyfrowane wyniki, bez publicznych rekordów')
     sub=parser.add_subparsers(dest='command',required=True)
     run=sub.add_parser('run');run.add_argument('--region',default='poznan');run.add_argument('--industry',default='all');run.add_argument('--limit',type=int,default=25);run.add_argument('--category',choices=['wszystkie','modernizacja'],default='wszystkie');run.add_argument('--storage',choices=['temporary','private-repository'],default='temporary');run.add_argument('--state-repository',default='');run.add_argument('--workdir',required=True);run.add_argument('--output',required=True)
+    run.add_argument('--mode',choices=['discover','diagnose'],default='discover');run.add_argument('--instance',choices=list(config('overpass')['instances']),default='overpass-de');run.add_argument('--accept-instance-terms',action='store_true')
     decrypt=sub.add_parser('decrypt');decrypt.add_argument('--input',required=True);decrypt.add_argument('--output',required=True)
     args=parser.parse_args(argv)
     if args.command=='run':return run_cloud(args,summary_path=os.environ.get('GITHUB_STEP_SUMMARY'))

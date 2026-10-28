@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "automatic_failover": false,
+  "instances": {
+    "overpass-de": {
+      "endpoint": "https://overpass-api.de/api/interpreter",
+      "status_endpoint": "https://overpass-api.de/api/status",
+      "terms_url": "https://dev.overpass-api.de/overpass-doc/en/preface/commons.html",
+      "requires_terms_acceptance": false
+    },
+    "private-coffee": {
+      "endpoint": "https://overpass.private.coffee/api/interpreter",
+      "status_endpoint": "https://overpass.private.coffee/api/status",
+      "terms_url": "https://overpass.private.coffee/#terms",
+      "requires_terms_acceptance": true
+    }
+  },
+  "diagnostic": {
+    "region": "poznan",
+    "industry": "mechanik",
+    "radius_m": 2000,
+    "server_timeout_seconds": 5,
+    "read_timeout_seconds": 15,
+    "max_body_bytes": 65536,
+    "cache_ttl_seconds": 300,
+    "max_requests_per_run": 3,
+    "max_attempts": 1
+  }
+}

@@ -1,5 +1,7 @@
 # Prospect Finder v0.3 — ręczne uruchamianie w GitHub Actions
 
+**Nowe sondy po drugim runie:** skopiuj aktualny szablon workflow do prywatnego runnera, aby dodać pola `mode`, `instance`, `accept_instance_terms`. Do testu wybierz `mode=diagnose`; pełne wyszukiwanie pozostaje pod `discover`. Instrukcja iPada i interpretacja etapów: [README_DIAGNOSTICS.md](README_DIAGNOSTICS.md). Aktualny zestaw obejmuje 90 testów Python; wcześniejsze liczby poniżej opisują historyczne runy.
+
 Uruchamia istniejące wyszukiwanie v0.2 w Pythonie na standardowym runnerze Ubuntu. Bez wysyłki, publikacji demo, płatnego API ani zmian produkcyjnego WebForge. Harmonogram **nie jest włączony**. Plik workflow jest zapisany jako JSON, czyli poprawny podzbiór YAML; rozszerzenie `.yml` pozostaje wymagane przez Actions.
 
 ## Ważne: dlaczego sam plik na feature nie wystarczy
